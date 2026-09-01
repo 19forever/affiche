@@ -10,6 +10,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
 
+  <!-- Transformers.js pro klientské AI vyhledávání -->
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0"></script>
+
   <!-- Viewer.js (Prohlížeč obrázků) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
@@ -17,16 +20,31 @@
 <body>
 
   <header class="top-header">
-    <div class="header-content">
-      <h1>Affiche <span>Art Poster Archive</span></h1>
-      <p>Kolekce historických reklamních plakátů a časopisecké grafiky</p>
+    <div class="header-content" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+      <div>
+        <h1>Affiche <span>Art Poster Archive</span></h1>
+        <p>Kolekce historických reklamních plakátů a časopisecké grafiky</p>
+      </div>
+
+      <!-- Tlačítka správy / Editoru pro admina -->
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="edit_poster.html" id="adminEditorBtn" style="display: none; background: var(--accent-gold); color: #000; font-weight: bold; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem;" title="Otevřít Editor plakátů">
+          ✏️ Editor
+        </a>
+        <button id="adminLoginBtn" onclick="window.location.href='edit_poster.html'" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+          🔒 Admin
+        </button>
+        <button id="adminLogoutBtn" onclick="handleLogout()" style="display: none; background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+          Odhlásit
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="container">
     <div class="controls">
       <div class="search-wrapper">
-        <input type="text" id="searchInput" placeholder="🔍 Hledat podle autora, značky, roku nebo motivu (např. moře, červená)...">
+        <input type="text" id="searchInput" placeholder="🔍 AI hledání podle vizuálu i textu (např. 'červená barva', 'moře', 'flakon')...">
       </div>
       
       <select id="eraFilter">
@@ -34,6 +52,8 @@
         <option value="Secese">Secese</option>
         <option value="Art Deco">Art Deco</option>
         <option value="První republika">První republika</option>
+        <option value="Bauhaus">Bauhaus</option>
+        <option value="Předválečné">Předválečné</option>
       </select>
 
       <select id="sortFilter">
@@ -44,7 +64,7 @@
     </div>
 
     <div id="postersGrid" class="posters-grid">
-      <!-- Sem se budou dynamicky načítat karty plakátů -->
+      <!-- Sem se dynamicky načítají karty plakátů -->
     </div>
   </main>
 
