@@ -88,29 +88,28 @@ async function loadPosterForEdit() {
 // 3. Příprava AI CLIP Modelu (Transformers.js)
 async function preloadClipModel() {
   try {
-    if (window.transformers) {
-      const { AutoTokenizer, CLIPTextModelWithProjection, AutoProcessor, CLIPVisionModelWithProjection } = window.transformers;
-      
-      tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
-      textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
-      featureExtractor = await AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
-      visionModel = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+    const tf = window.transformers;
+    if (tf) {
+      tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+      textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+      featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
+      visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
     }
   } catch (err) {
-    console.warn("AI Model se načte při ukládání souboru.", err);
+    console.warn("AI Model se načte při prvním generování.", err);
   }
 }
 
 // Vytvoření AI vektoru z lokálně vybraného obrázku
 async function generateImageEmbeddingFromFile(file) {
   try {
-    if (!window.transformers || !file) return null;
-    const { RawImage, AutoProcessor, CLIPVisionModelWithProjection } = window.transformers;
+    const tf = window.transformers;
+    if (!tf || !file) return null;
 
-    if (!featureExtractor) featureExtractor = await AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
-    if (!visionModel) visionModel = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
 
-    const image = await RawImage.fromURL(URL.createObjectURL(file));
+    const image = await tf.RawImage.fromURL(URL.createObjectURL(file));
     const imageInputs = await featureExtractor(image);
     const { image_embeds } = await visionModel(imageInputs);
 
@@ -124,11 +123,11 @@ async function generateImageEmbeddingFromFile(file) {
 // Záložní vytvoření AI vektoru z textových polí plakátu
 async function generateTextEmbeddingForPoster(text) {
   try {
-    if (!window.transformers || !text.trim()) return null;
-    const { AutoTokenizer, CLIPTextModelWithProjection } = window.transformers;
+    const tf = window.transformers;
+    if (!tf || !text.trim()) return null;
 
-    if (!tokenizer) tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
-    if (!textModel) textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
 
     const textInputs = tokenizer([text], { padding: true, truncation: true });
     const { text_embeds } = await textModel(textInputs);
@@ -153,23 +152,36 @@ async function savePoster(e) {
   const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
 
   let embeddingVector = null;
+  let aiErrorMsg = '';
 
-  // A. Pokus o vygenerování ze souboru
-  if (selectedFile) {
-    embeddingVector = await generateImageEmbeddingFromFile(selectedFile);
-  }
+  const tf = window.transformers;
+  if (tf) {
+    try {
+      if (selectedFile) {
+        console.log("Generuji AI vektor ze zvoleného souboru...");
+        embeddingVector = await generateImageEmbeddingFromFile(selectedFile);
+      }
 
-  // B. Záložní pokus z textových údajů
-  if (!embeddingVector) {
-    const textContext = [
-      document.getElementById('title').value,
-      document.getElementById('author').value,
-      document.getElementById('client').value,
-      document.getElementById('product_subject').value,
-      document.getElementById('note').value
-    ].filter(Boolean).join(' ');
+      if (!embeddingVector) {
+        const textContext = [
+          document.getElementById('title').value,
+          document.getElementById('author').value,
+          document.getElementById('client').value,
+          document.getElementById('product_subject').value,
+          document.getElementById('note').value
+        ].filter(Boolean).join(' ');
 
-    embeddingVector = await generateTextEmbeddingForPoster(textContext);
+        if (textContext.trim()) {
+          console.log("Generuji AI vektor z textových údajů...");
+          embeddingVector = await generateTextEmbeddingForPoster(textContext);
+        }
+      }
+    } catch (err) {
+      console.error("Chyba při spuštění AI modelů:", err);
+      aiErrorMsg = err.message;
+    }
+  } else {
+    aiErrorMsg = "Knihovna Transformers.js nebyla načtena na stránce.";
   }
 
   const payload = {
@@ -204,10 +216,14 @@ async function savePoster(e) {
 
     if (result.error) throw result.error;
 
-    alert('Plakát úspěšně uložen!\nAI Vektor: ' + (payload.embedding ? 'VYGENEROVÁN' : 'NEVYGENEROVÁN'));
+    const statusText = payload.embedding 
+      ? 'VYGENEROVÁN ✅' 
+      : 'NEVYGENEROVÁN ❌' + (aiErrorMsg ? ` (${aiErrorMsg})` : ' (zkontrolujte konzoli F12)');
+
+    alert('Plakát úspěšně uložen!\nAI Vektor: ' + statusText);
     window.location.href = 'index.html';
   } catch (err) {
-    alert('Chyba při ukládání: ' + err.message);
+    alert('Chyba při ukládání do Supabase: ' + err.message);
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = originalBtnText;
