@@ -20,23 +20,25 @@
 <body>
 
   <header class="top-header">
-    <div class="header-content" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-      <div>
-        <h1>Affiche <span>Art Poster Archive</span></h1>
-        <p>Kolekce historických reklamních plakátů a časopisecké grafiky</p>
-      </div>
+    <div class="container">
+      <div class="header-content">
+        <div>
+          <h1>Affiche <span>Art Poster Archive</span></h1>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Kolekce historických reklamních plakátů a časopisecké grafiky</p>
+        </div>
 
-      <!-- Tlačítka správy / Editoru pro admina -->
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <a href="edit_poster.html" id="adminEditorBtn" style="display: none; background: var(--accent-gold); color: #000; font-weight: bold; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem;" title="Otevřít Editor plakátů">
-          ✏️ Editor
-        </a>
-        <button id="adminLoginBtn" onclick="window.location.href='edit_poster.html'" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
-          🔒 Admin
-        </button>
-        <button id="adminLogoutBtn" onclick="handleLogout()" style="display: none; background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
-          Odhlásit
-        </button>
+        <!-- Tlačítka správy / Editoru pro admina -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <a href="edit_poster.html" id="adminEditorBtn" style="display: none; background: var(--accent-gold); color: #000; font-weight: bold; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem;" title="Otevřít Editor plakátů">
+            ✏️ Editor
+          </a>
+          <button id="adminLoginBtn" onclick="window.location.href='edit_poster.html'" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+            🔒 Admin
+          </button>
+          <button id="adminLogoutBtn" onclick="handleLogout()" style="display: none; background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+            Odhlásit
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -44,23 +46,25 @@
   <main class="container">
     <div class="controls">
       <div class="search-wrapper">
-        <input type="text" id="searchInput" placeholder="🔍 AI hledání podle vizuálu i textu (např. 'červená barva', 'moře', 'flakon')...">
+        <input type="text" id="searchInput" placeholder="🔍 Hledat podle názvu, autora, značky nebo AI vizuálu (např. 'moře', 'flakon')...">
       </div>
       
-      <select id="eraFilter">
-        <option value="">Všechna období</option>
-        <option value="Secese">Secese</option>
-        <option value="Art Deco">Art Deco</option>
-        <option value="První republika">První republika</option>
-        <option value="Bauhaus">Bauhaus</option>
-        <option value="Předválečné">Předválečné</option>
-      </select>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <select id="eraFilter">
+          <option value="">Všechna období</option>
+          <option value="Secese">Secese</option>
+          <option value="Art Deco">Art Deco</option>
+          <option value="První republika">První republika</option>
+          <option value="Bauhaus">Bauhaus</option>
+          <option value="Předválečné">Předválečné</option>
+        </select>
 
-      <select id="sortFilter">
-        <option value="newest">Nejnovější přidané</option>
-        <option value="year_asc">Rok (Od nejstarších)</option>
-        <option value="year_desc">Rok (Od nejnovějších)</option>
-      </select>
+        <select id="sortFilter">
+          <option value="newest">Nejnovější přidané</option>
+          <option value="year_asc">Rok (Od nejstarších)</option>
+          <option value="year_desc">Rok (Od nejnovějších)</option>
+        </select>
+      </div>
     </div>
 
     <div id="postersGrid" class="posters-grid">
