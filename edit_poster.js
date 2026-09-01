@@ -91,7 +91,8 @@ async function preloadClipModel() {
     if (tf) {
       // Vynutit stahování z veřejného CDN a vypnout lokální adresář
       tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+      tf.env.remoteHost = 'https://huggingface.co/';
+      tf.env.remotePath = '{model}/resolve/main/';
       
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -111,7 +112,8 @@ async function generateImageEmbeddingFromFile(file) {
     if (tf) {
       // Vynutit stahování z veřejného CDN a vypnout lokální adresář
       tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+      tf.env.remoteHost = 'https://huggingface.co/';
+      tf.env.remotePath = '{model}/resolve/main/';
 
     if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -134,7 +136,8 @@ async function generateTextEmbeddingForPoster(text) {
     if (tf) {
       // Vynutit stahování z veřejného CDN a vypnout lokální adresář
       tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+      tf.env.remoteHost = 'https://huggingface.co/';
+      tf.env.remotePath = '{model}/resolve/main/';
       
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
