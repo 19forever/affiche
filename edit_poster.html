@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Affiche Editor - Správa plakátů</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <style>
+    .editor-container { max-width: 800px; margin: 30px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; color: var(--accent-gold); font-size: 0.9rem; font-weight: 600; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    .btn-submit { background: var(--accent-gold); color: #000; font-weight: bold; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 10px; }
+    .btn-submit:hover { opacity: 0.9; }
+    .auth-gate { text-align: center; padding: 40px 20px; }
+    textarea { width: 100%; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; resize: vertical; min-height: 80px; }
+  </style>
+</head>
+<body>
+
+  <header class="top-header">
+    <div class="header-content">
+      <h1>Affiche <span>Editor</span></h1>
+      <p><a href="index.html" style="color: var(--accent-gold); text-decoration: none;">← Zpět na přehled sbírky</a></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Formulář pro přihlášení admina -->
+    <div id="loginGate" class="editor-container auth-gate">
+      <h2>🔒 Přihlášení Administrátora</h2>
+      <p style="color: var(--text-muted); margin: 15px 0;">Pro vkládání a úpravu plakátů se prosím přihlaste.</p>
+      <div class="form-group" style="max-width: 360px; margin: 0 auto 15px auto;">
+        <input type="email" id="adminEmail" placeholder="E-mail">
+      </div>
+      <div class="form-group" style="max-width: 360px; margin: 0 auto 20px auto;">
+        <input type="password" id="adminPassword" placeholder="Heslo">
+      </div>
+      <button class="btn-submit" style="max-width: 360px;" onclick="handleLogin()">Přihlásit se</button>
+      <div id="loginError" style="color: #ef4444; margin-top: 15px; font-size: 0.85rem;"></div>
+    </div>
+
+    <!-- Hlavní formulář editoru -->
+    <div id="editorForm" class="editor-container" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+        <h2 id="formTitle">➕ Přidat nový plakát / reklamu</h2>
+        <button onclick="handleLogout()" style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Odhlásit</button>
+      </div>
+
+      <form id="posterForm" onsubmit="savePoster(event)">
+        <input type="hidden" id="posterId">
+
+        <div class="form-group">
+          <label for="title">Název motivu / Titulek *</label>
+          <input type="text" id="title" required placeholder="např. Mai d'or - Vivaudou">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="author">Autor / Grafik</label>
+            <input type="text" id="author" placeholder="např. F.L.P. nebo Alphonse Mucha">
+          </div>
+          <div class="form-group">
+            <label for="client">Klient / Objednatel / Značka</label>
+            <input type="text" id="client" placeholder="např. Vivaudou Paris">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="year">Přesný rok</label>
+            <input type="number" id="year" placeholder="1923">
+          </div>
+          <div class="form-group">
+            <label for="year_approx">Přibližný rok / Dekáda</label>
+            <input type="text" id="year_approx" placeholder="např. cca 1920s">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="period_era">Sloh / Období</label>
+            <select id="period_era">
+              <option value="Art Deco">Art Deco</option>
+              <option value="Secese">Secese</option>
+              <option value="První republika">První republika</option>
+              <option value="Bauhaus">Bauhaus</option>
+              <option value="Předválečné">Předválečné</option>
+              <option value="Jiné">Jiné</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="product_subject">Zboží / Událost</label>
+            <input type="text" id="product_subject" placeholder="např. Parfém Mai d'or">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="printer">Tiskárna / Vydavatelství</label>
+            <input type="text" id="printer" placeholder="např. The Ladies' Home Journal">
+          </div>
+          <div class="form-group">
+            <label for="dimensions">Rozměry</label>
+            <input type="text" id="dimensions" placeholder="např. 25 x 35 cm">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="soubor_hlavni">Soubor hlavního skenu * (ve složce ./scans)</label>
+          <input type="text" id="soubor_hlavni" required placeholder="vivaudou_full.jpg">
+        </div>
+
+        <div class="form-group">
+          <label for="soubory_detaily">Soubory detailů (oddělené čárkou)</label>
+          <input type="text" id="soubory_detaily" placeholder="detail_signatura.jpg, detail_razitko.jpg">
+        </div>
+
+        <div class="form-group">
+          <label for="note">Detailní popis / Transkripce textu / Poznámka</label>
+          <textarea id="note" placeholder="Zadejte texty z plakátu, popis tiskové techniky..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">💾 Uložit plakát do databáze</button>
+      </form>
+    </div>
+  </main>
+
+  <script src="edit_poster.js"></script>
+</body>
+</html>
