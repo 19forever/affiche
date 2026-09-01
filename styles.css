@@ -1,0 +1,142 @@
+:root {
+  --bg-main: #0f0f0f;
+  --bg-card: #181818;
+  --bg-hover: #222222;
+  --accent-gold: #d4af37;
+  --text-main: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --border-color: #2a2a2a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.top-header {
+  text-align: center;
+  padding: 30px 0 20px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 30px;
+}
+
+.top-header h1 {
+  font-size: 2.2rem;
+  color: var(--accent-gold);
+  letter-spacing: 1px;
+}
+
+.top-header h1 span {
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-weight: 300;
+  display: block;
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.search-wrapper { flex: 1; min-width: 280px; }
+
+input, select {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+input:focus, select:focus {
+  border-color: var(--accent-gold);
+}
+
+/* Vertikální Mřížka pro Plakáty (poměr 3:4) */
+.posters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 25px;
+}
+
+.poster-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.poster-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-gold);
+}
+
+.poster-img-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4; /* Pevný vertikální poměr stran pro plakáty */
+  background-color: #000;
+  overflow: hidden;
+}
+
+.poster-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  color: var(--accent-gold);
+  border: 1px solid var(--accent-gold);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.poster-info {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+}
+
+.poster-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.poster-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.poster-author {
+  color: var(--accent-gold);
+  font-weight: 500;
+}
