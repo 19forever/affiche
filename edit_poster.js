@@ -85,15 +85,19 @@ async function loadPosterForEdit() {
   }
 }
 
-// 3. Příprava AI CLIP Modelu (Transformers.js)
 async function preloadClipModel() {
   try {
     const tf = window.transformers;
     if (tf) {
+      // Vynutit stahování z veřejného CDN a vypnout lokální adresář
+      tf.env.allowLocalModels = false;
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+      
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
       featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
       visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+      console.log("AI CLIP Model úspěšně připraven.");
     }
   } catch (err) {
     console.warn("AI Model se načte při prvním generování.", err);
@@ -104,7 +108,10 @@ async function preloadClipModel() {
 async function generateImageEmbeddingFromFile(file) {
   try {
     const tf = window.transformers;
-    if (!tf || !file) return null;
+    if (tf) {
+      // Vynutit stahování z veřejného CDN a vypnout lokální adresář
+      tf.env.allowLocalModels = false;
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
 
     if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -124,8 +131,11 @@ async function generateImageEmbeddingFromFile(file) {
 async function generateTextEmbeddingForPoster(text) {
   try {
     const tf = window.transformers;
-    if (!tf || !text.trim()) return null;
-
+    if (tf) {
+      // Vynutit stahování z veřejného CDN a vypnout lokální adresář
+      tf.env.allowLocalModels = false;
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+      
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
 
