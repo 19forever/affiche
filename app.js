@@ -2,7 +2,11 @@ let allPosters = [];
 let filteredPosters = [];
 let activeViewerInstance = null;
 
-// Náhradní SVG obrázek, pokud chybí sken
+// AI Modely pro textové vyhledávání (Transformers.js)
+let tokenizer = null;
+let textModel = null;
+
+// Náhradní SVG obrázek pro chybějící sken
 const MISSING_POSTER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
   <rect width="300" height="400" fill="#181818"/>
@@ -13,14 +17,45 @@ const MISSING_POSTER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 `)}`;
 
 document.addEventListener('DOMContentLoaded', () => {
+  checkAdminAuth();
   setupEventListeners();
   loadPostersFromSupabase();
+  preloadTextEmbeddingModel();
 });
+
+// Ověření stavu přihlášeného admina
+async function checkAdminAuth() {
+  if (typeof supabaseClient === 'undefined') return;
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const isAdmin = !!session;
+
+  const editorBtn = document.getElementById('adminEditorBtn');
+  const loginBtn = document.getElementById('adminLoginBtn');
+  const logoutBtn = document.getElementById('adminLogoutBtn');
+
+  if (editorBtn) editorBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  if (logoutBtn) logoutBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  if (loginBtn) loginBtn.style.display = isAdmin ? 'none' : 'inline-block';
+}
+
+async function handleLogout() {
+  if (typeof supabaseClient !== 'undefined') {
+    await supabaseClient.auth.signOut();
+    window.location.reload();
+  }
+}
 
 function setupEventListeners() {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
-    searchInput.addEventListener('input', filterPosters);
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        filterPosters();
+      }, 400); // Debounce pro AI hledání
+    });
   }
 
   document.getElementById('eraFilter')?.addEventListener('change', filterPosters);
@@ -49,44 +84,92 @@ async function loadPostersFromSupabase() {
   }
 }
 
-function filterPosters() {
+// Příprava CLIP modelu pro generování vektoru z textového dotazu
+async function preloadTextEmbeddingModel() {
+  try {
+    if (window.transformers) {
+      const { AutoTokenizer, CLIPTextModelWithProjection } = window.transformers;
+      tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+      textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+    }
+  } catch (err) {
+    console.warn("AI model pro vyhledávání se načte při prvním dotazu.", err);
+  }
+}
+
+// Převod textového dotazu na vektor
+async function generateTextEmbedding(text) {
+  try {
+    if (!window.transformers) return null;
+    const { AutoTokenizer, CLIPTextModelWithProjection } = window.transformers;
+
+    if (!tokenizer) tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!textModel) textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+
+    const textInputs = tokenizer([text], { padding: true, truncation: true });
+    const { text_embeds } = await textModel(textInputs);
+
+    return Array.from(text_embeds.data);
+  } catch (err) {
+    console.error("Chyba při generování AI vektoru z textu:", err);
+    return null;
+  }
+}
+
+// Hlavní vyhledávací a filtrovací logika (Hybridní AI + Filtry)
+async function filterPosters() {
   const query = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
   const selectedEra = document.getElementById('eraFilter')?.value || '';
   const sort = document.getElementById('sortFilter')?.value || 'newest';
 
-  filteredPosters = allPosters.filter(p => {
-    const title = (p.title || '').toLowerCase();
-    const author = (p.author || '').toLowerCase();
-    const client = (p.client || '').toLowerCase();
-    const product = (p.product_subject || '').toLowerCase();
-    const note = (p.note || '').toLowerCase();
-    const period = (p.period_era || '').toLowerCase();
+  let results = [...allPosters];
 
-    const matchesSearch = !query || 
-      title.includes(query) || 
-      author.includes(query) || 
-      client.includes(query) || 
-      product.includes(query) || 
-      note.includes(query);
+  // 1. AI Sémantické vyhledávání přes pgvector (pokud je zadán dotaz)
+  if (query.length > 2) {
+    const queryVector = await generateTextEmbedding(query);
 
-    const matchesEra = !selectedEra || period === selectedEra.toLowerCase();
+    if (queryVector) {
+      const { data, error } = await supabaseClient.rpc('match_posters', {
+        query_embedding: queryVector,
+        match_threshold: 0.1,
+        match_count: 50
+      });
 
-    return matchesSearch && matchesEra;
-  });
-
-  // Řazení
-  if (sort === 'year_asc') {
-    filteredPosters.sort((a, b) => (a.year || 9999) - (b.year || 9999));
-  } else if (sort === 'year_desc') {
-    filteredPosters.sort((a, b) => (b.year || 0) - (a.year || 0));
-  } else {
-    // Nejsnovější přidané (podle ID / timestampu)
-    filteredPosters.sort((a, b) => b.id - a.id);
+      if (!error && data && data.length > 0) {
+        const matchedIds = new Set(data.map(item => item.id));
+        results = allPosters.filter(p => matchedIds.has(p.id));
+      } else {
+        // Fallback na klasické textové hledání, pokud RPC nic nevrátí
+        results = results.filter(p => {
+          return (p.title || '').toLowerCase().includes(query) ||
+                 (p.author || '').toLowerCase().includes(query) ||
+                 (p.client || '').toLowerCase().includes(query) ||
+                 (p.product_subject || '').toLowerCase().includes(query) ||
+                 (p.note || '').toLowerCase().includes(query);
+        });
+      }
+    }
   }
 
+  // 2. Filtrování podle období
+  if (selectedEra) {
+    results = results.filter(p => (p.period_era || '').toLowerCase() === selectedEra.toLowerCase());
+  }
+
+  // 3. Řazení
+  if (sort === 'year_asc') {
+    results.sort((a, b) => (a.year || 9999) - (b.year || 9999));
+  } else if (sort === 'year_desc') {
+    results.sort((a, b) => (b.year || 0) - (a.year || 0));
+  } else {
+    results.sort((a, b) => b.id - a.id);
+  }
+
+  filteredPosters = results;
   renderPosters(filteredPosters);
 }
 
+// Vykreslení karet v mřížce
 function renderPosters(posters) {
   const grid = document.getElementById('postersGrid');
   if (!grid) return;
@@ -101,7 +184,6 @@ function renderPosters(posters) {
     const card = document.createElement('div');
     card.className = 'poster-card';
 
-    // Detaily
     const detailFiles = (p.soubory_detaily || '').split(',').map(s => s.trim()).filter(Boolean);
     const detailCount = detailFiles.length;
 
@@ -133,7 +215,7 @@ function renderPosters(posters) {
   });
 }
 
-// Otevření celé galerie (hlavní sken + detaily) ve Viewer.js
+// Prohlížeč obrázků (Viewer.js)
 function openPosterGallery(poster) {
   if (activeViewerInstance) {
     activeViewerInstance.destroy();
