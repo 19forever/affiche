@@ -90,7 +90,8 @@ async function preloadTextEmbeddingModel() {
     const tf = window.transformers;
     if (tf) {
       tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+      tf.env.remoteHost = 'https://huggingface.co/';
+      tf.env.remotePath = '{model}/resolve/main/';
 
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -108,7 +109,8 @@ async function generateTextEmbedding(text) {
     if (!tf || !text.trim()) return null;
 
     tf.env.allowLocalModels = false;
-    tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+    tf.env.remoteHost = 'https://huggingface.co/';
+      tf.env.remotePath = '{model}/resolve/main/';
 
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
