@@ -87,10 +87,14 @@ async function loadPostersFromSupabase() {
 // Příprava CLIP modelu pro generování vektoru z textového dotazu
 async function preloadTextEmbeddingModel() {
   try {
-    if (window.transformers) {
-      const { AutoTokenizer, CLIPTextModelWithProjection } = window.transformers;
-      tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
-      textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+    const tf = window.transformers;
+    if (tf) {
+      tf.env.allowLocalModels = false;
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+
+      tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+      textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+      console.log("AI Vyhledávací model připraven.");
     }
   } catch (err) {
     console.warn("AI model pro vyhledávání se načte při prvním dotazu.", err);
@@ -100,11 +104,14 @@ async function preloadTextEmbeddingModel() {
 // Převod textového dotazu na vektor
 async function generateTextEmbedding(text) {
   try {
-    if (!window.transformers) return null;
-    const { AutoTokenizer, CLIPTextModelWithProjection } = window.transformers;
+    const tf = window.transformers;
+    if (!tf || !text.trim()) return null;
 
-    if (!tokenizer) tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
-    if (!textModel) textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+    tf.env.allowLocalModels = false;
+    tf.env.remoteHost = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/models/';
+
+    if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
 
     const textInputs = tokenizer([text], { padding: true, truncation: true });
     const { text_embeds } = await textModel(textInputs);
