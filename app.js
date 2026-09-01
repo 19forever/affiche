@@ -54,7 +54,7 @@ function setupEventListeners() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         filterPosters();
-      }, 400); // Debounce pro AI hledání
+      }, 300);
     });
   }
 
@@ -116,7 +116,7 @@ async function generateTextEmbedding(text) {
   }
 }
 
-// Hlavní vyhledávací a filtrovací logika (Hybridní AI + Filtry)
+// Hlavní vyhledávací a filtrovací logika (Hybridní AI + Text + Filtry)
 async function filterPosters() {
   const query = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
   const selectedEra = document.getElementById('eraFilter')?.value || '';
@@ -124,34 +124,51 @@ async function filterPosters() {
 
   let results = [...allPosters];
 
-  // 1. AI Sémantické vyhledávání přes pgvector (pokud je zadán dotaz)
-  if (query.length > 2) {
-    const queryVector = await generateTextEmbedding(query);
+  // 1. Filtrování podle vyhledávacího dotazu (Textové + AI)
+  if (query.length > 0) {
+    let aiMatchedIds = null;
 
-    if (queryVector) {
-      const { data, error } = await supabaseClient.rpc('match_posters', {
-        query_embedding: queryVector,
-        match_threshold: 0.1,
-        match_count: 50
-      });
+    if (query.length > 2) {
+      try {
+        const queryVector = await generateTextEmbedding(query);
+        if (queryVector) {
+          const { data, error } = await supabaseClient.rpc('match_posters', {
+            query_embedding: queryVector,
+            match_threshold: 0.1,
+            match_count: 50
+          });
 
-      if (!error && data && data.length > 0) {
-        const matchedIds = new Set(data.map(item => item.id));
-        results = allPosters.filter(p => matchedIds.has(p.id));
-      } else {
-        // Fallback na klasické textové hledání, pokud RPC nic nevrátí
-        results = results.filter(p => {
-          return (p.title || '').toLowerCase().includes(query) ||
-                 (p.author || '').toLowerCase().includes(query) ||
-                 (p.client || '').toLowerCase().includes(query) ||
-                 (p.product_subject || '').toLowerCase().includes(query) ||
-                 (p.note || '').toLowerCase().includes(query);
-        });
+          if (!error && data && data.length > 0) {
+            aiMatchedIds = new Set(data.map(item => item.id));
+          }
+        }
+      } catch (e) {
+        console.warn("AI sémantické vyhledávání vynecháno, používám textové hledání.", e);
       }
     }
+
+    results = results.filter(p => {
+      const title = (p.title || '').toLowerCase();
+      const author = (p.author || '').toLowerCase();
+      const client = (p.client || '').toLowerCase();
+      const product = (p.product_subject || '').toLowerCase();
+      const note = (p.note || '').toLowerCase();
+      const era = (p.period_era || '').toLowerCase();
+
+      const textMatch = title.includes(query) || 
+                        author.includes(query) || 
+                        client.includes(query) || 
+                        product.includes(query) || 
+                        note.includes(query) ||
+                        era.includes(query);
+
+      const aiMatch = aiMatchedIds ? aiMatchedIds.has(p.id) : false;
+
+      return textMatch || aiMatch;
+    });
   }
 
-  // 2. Filtrování podle období
+  // 2. Filtrování podle období (select)
   if (selectedEra) {
     results = results.filter(p => (p.period_era || '').toLowerCase() === selectedEra.toLowerCase());
   }
@@ -215,7 +232,7 @@ function renderPosters(posters) {
   });
 }
 
-// Prohlížeč obrázků (Viewer.js)
+// Prohlížeč obrázků (Viewer.js) - Hlavní sken + detaily
 function openPosterGallery(poster) {
   if (activeViewerInstance) {
     activeViewerInstance.destroy();
