@@ -1,1 +1,4 @@
+const SUPABASE_URL = 'HTTPS://TVOJE-PROJECT-ID.SUPABASE.CO';
+const SUPABASE_ANON_KEY = 'TVUJ-SUPABASE-ANON-KEY';
 
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
