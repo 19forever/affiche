@@ -6,8 +6,12 @@
   <title>Affiche Editor - Správa plakátů</title>
   <link rel="stylesheet" href="styles.css">
   
+  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
+
+  <!-- Transformers.js pro klientské generování AI vektorů -->
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0"></script>
 
   <style>
     .editor-container { max-width: 800px; margin: 30px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); }
@@ -17,21 +21,27 @@
     @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
     .btn-submit { background: var(--accent-gold); color: #000; font-weight: bold; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 10px; }
     .btn-submit:hover { opacity: 0.9; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
     .auth-gate { text-align: center; padding: 40px 20px; }
     textarea { width: 100%; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; resize: vertical; min-height: 80px; }
+    .file-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
 
   <header class="top-header">
-    <div class="header-content">
-      <h1>Affiche <span>Editor</span></h1>
-      <p><a href="index.html" style="color: var(--accent-gold); text-decoration: none;">← Zpět na přehled sbírky</a></p>
+    <div class="container">
+      <div class="header-content">
+        <div>
+          <h1>Affiche <span>Editor</span></h1>
+          <p style="margin-top: 4px;"><a href="index.html" style="color: var(--accent-gold); text-decoration: none;">← Zpět na přehled sbírky</a></p>
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="container">
-    <!-- Formulář pro přihlášení admina -->
+    <!-- Přihlašovací formulář pro administrátora -->
     <div id="loginGate" class="editor-container auth-gate">
       <h2>🔒 Přihlášení Administrátora</h2>
       <p style="color: var(--text-muted); margin: 15px 0;">Pro vkládání a úpravu plakátů se prosím přihlaste.</p>
@@ -111,8 +121,15 @@
           </div>
         </div>
 
+        <!-- Nahrání lokálního souboru pro AI analýzu -->
+        <div class="form-group" style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed var(--accent-gold);">
+          <label for="file_input">🤖 Obrázek pro vygenerování AI vektoru (z počítače)</label>
+          <input type="file" id="file_input" accept="image/*">
+          <div class="file-hint">Vyberte soubor plakátu z disku. AI model z něj v prohlížeči vygeneruje vizuální otisk do databáze.</div>
+        </div>
+
         <div class="form-group">
-          <label for="soubor_hlavni">Soubor hlavního skenu * (ve složce ./scans)</label>
+          <label for="soubor_hlavni">Soubor hlavního skenu na GitHubu * (ve složce ./scans)</label>
           <input type="text" id="soubor_hlavni" required placeholder="vivaudou_full.jpg">
         </div>
 
@@ -130,8 +147,6 @@
       </form>
     </div>
   </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0"></script>
 
   <script src="edit_poster.js"></script>
 </body>
