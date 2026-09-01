@@ -4,11 +4,12 @@ let textModel = null;
 let visionModel = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  checkSession();
+  await checkSession();
   preloadClipModel();
+  loadPosterForEdit();
 });
 
-// 1. Kontrola přihlášení a správa relace
+// 1. Kontrola relace a správa autorizace
 async function checkSession() {
   if (typeof supabaseClient === 'undefined') return;
 
@@ -46,7 +47,45 @@ async function handleLogout() {
   checkSession();
 }
 
-// 2. Příprava AI CLIP Modelu (Transformers.js v prohlížeči)
+// 2. Načtení dat stávajícího plakátu při úpravě podle URL (?id=...)
+async function loadPosterForEdit() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const posterId = urlParams.get('id');
+
+  if (!posterId) return;
+
+  document.getElementById('formTitle').textContent = '✏️ Upravit plakát #' + posterId;
+  document.getElementById('posterId').value = posterId;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('posters')
+      .select('*')
+      .eq('id', posterId)
+      .single();
+
+    if (error) throw error;
+    if (!data) return;
+
+    document.getElementById('title').value = data.title || '';
+    document.getElementById('author').value = data.author || '';
+    document.getElementById('client').value = data.client || '';
+    document.getElementById('year').value = data.year || '';
+    document.getElementById('year_approx').value = data.year_approx || '';
+    document.getElementById('period_era').value = data.period_era || 'Art Deco';
+    document.getElementById('product_subject').value = data.product_subject || '';
+    document.getElementById('printer').value = data.printer || '';
+    document.getElementById('dimensions').value = data.dimensions || '';
+    document.getElementById('soubor_hlavni').value = data.soubor_hlavni || '';
+    document.getElementById('soubory_detaily').value = data.soubory_detaily || '';
+    document.getElementById('note').value = data.note || '';
+
+  } catch (err) {
+    console.error("Chyba při načítání plakátu k úpravě:", err.message);
+  }
+}
+
+// 3. Příprava AI CLIP Modelu (Transformers.js)
 async function preloadClipModel() {
   try {
     if (window.transformers) {
@@ -58,46 +97,79 @@ async function preloadClipModel() {
       visionModel = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
     }
   } catch (err) {
-    console.warn("AI Model se nepodařilo načíst v popředí, zkusíme to při ukládání:", err);
+    console.warn("AI Model se načte při ukládání souboru.", err);
   }
 }
 
-// Generování vektoru z obrázku
-async function generateImageEmbedding(imageUrl) {
+// Vytvoření AI vektoru z lokálně vybraného obrázku
+async function generateImageEmbeddingFromFile(file) {
   try {
-    if (!window.transformers) return null;
+    if (!window.transformers || !file) return null;
     const { RawImage, AutoProcessor, CLIPVisionModelWithProjection } = window.transformers;
 
     if (!featureExtractor) featureExtractor = await AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
 
-    const image = await RawImage.fromURL(imageUrl);
+    const image = await RawImage.fromURL(URL.createObjectURL(file));
     const imageInputs = await featureExtractor(image);
     const { image_embeds } = await visionModel(imageInputs);
 
     return Array.from(image_embeds.data);
   } catch (err) {
-    console.error("Chyba při generování AI vektoru z obrázku:", err);
+    console.error("Chyba při zpracování obrázku pro AI:", err);
     return null;
   }
 }
 
-// 3. Uložení plakátu do databáze (včetně AI Vektoru)
+// Záložní vytvoření AI vektoru z textových polí plakátu
+async function generateTextEmbeddingForPoster(text) {
+  try {
+    if (!window.transformers || !text.trim()) return null;
+    const { AutoTokenizer, CLIPTextModelWithProjection } = window.transformers;
+
+    if (!tokenizer) tokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
+    if (!textModel) textModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+
+    const textInputs = tokenizer([text], { padding: true, truncation: true });
+    const { text_embeds } = await textModel(textInputs);
+
+    return Array.from(text_embeds.data);
+  } catch (err) {
+    console.error("Chyba při generování textového vektoru:", err);
+    return null;
+  }
+}
+
+// 4. Hlavní uložení záznamu do databáze
 async function savePoster(e) {
   e.preventDefault();
 
   const submitBtn = document.querySelector('.btn-submit');
   const originalBtnText = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = '🔄 Zpracovávám a generuji AI vektor...';
+  submitBtn.textContent = '🔄 Generuji AI vektor (může trvat pár sekund)...';
 
-  const mainImgFileName = document.getElementById('soubor_hlavni').value.trim();
-  const mainImgUrl = `./scans/${mainImgFileName}`;
+  const fileInput = document.getElementById('file_input');
+  const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
 
-  // Pokus o vygenerování AI embeddingu z hlavního skenu
   let embeddingVector = null;
-  if (mainImgFileName) {
-    embeddingVector = await generateImageEmbedding(mainImgUrl);
+
+  // A. Pokus o vygenerování ze souboru
+  if (selectedFile) {
+    embeddingVector = await generateImageEmbeddingFromFile(selectedFile);
+  }
+
+  // B. Záložní pokus z textových údajů
+  if (!embeddingVector) {
+    const textContext = [
+      document.getElementById('title').value,
+      document.getElementById('author').value,
+      document.getElementById('client').value,
+      document.getElementById('product_subject').value,
+      document.getElementById('note').value
+    ].filter(Boolean).join(' ');
+
+    embeddingVector = await generateTextEmbeddingForPoster(textContext);
   }
 
   const payload = {
@@ -110,13 +182,13 @@ async function savePoster(e) {
     product_subject: document.getElementById('product_subject').value,
     printer: document.getElementById('printer').value,
     dimensions: document.getElementById('dimensions').value,
-    soubor_hlavni: mainImgFileName,
+    soubor_hlavni: document.getElementById('soubor_hlavni').value.trim(),
     soubory_detaily: document.getElementById('soubory_detaily').value.trim(),
     note: document.getElementById('note').value,
     is_public: true
   };
 
-  if (embeddingVector) {
+  if (embeddingVector && embeddingVector.length === 512) {
     payload.embedding = embeddingVector;
   }
 
@@ -132,7 +204,7 @@ async function savePoster(e) {
 
     if (result.error) throw result.error;
 
-    alert('Plakát byl úspěšně uložen do databáze' + (embeddingVector ? ' včetně AI vektoru!' : '.'));
+    alert('Plakát úspěšně uložen!\nAI Vektor: ' + (payload.embedding ? 'VYGENEROVÁN' : 'NEVYGENEROVÁN'));
     window.location.href = 'index.html';
   } catch (err) {
     alert('Chyba při ukládání: ' + err.message);
