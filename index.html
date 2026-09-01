@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Affiche - Sbírka reklamních plakátů</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <!-- Viewer.js (Prohlížeč obrázků) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+</head>
+<body>
+
+  <header class="top-header">
+    <div class="header-content">
+      <h1>Affiche <span>Art Poster Archive</span></h1>
+      <p>Kolekce historických reklamních plakátů a časopisecké grafiky</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="controls">
+      <div class="search-wrapper">
+        <input type="text" id="searchInput" placeholder="🔍 Hledat podle autora, značky, roku nebo motivu (např. moře, červená)...">
+      </div>
+      
+      <select id="eraFilter">
+        <option value="">Všechna období</option>
+        <option value="Secese">Secese</option>
+        <option value="Art Deco">Art Deco</option>
+        <option value="První republika">První republika</option>
+      </select>
+
+      <select id="sortFilter">
+        <option value="newest">Nejnovější přidané</option>
+        <option value="year_asc">Rok (Od nejstarších)</option>
+        <option value="year_desc">Rok (Od nejnovějších)</option>
+      </select>
+    </div>
+
+    <div id="postersGrid" class="posters-grid">
+      <!-- Sem se budou dynamicky načítat karty plakátů -->
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
