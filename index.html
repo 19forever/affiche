@@ -10,8 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
 
-  <!-- Transformers.js pro klientské AI vyhledávání -->
-  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0"></script>
+<!-- ES Module verze Transformers.js -->
+<script type="module">
+  import * as transformers from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
+  window.transformers = transformers;
+</script>
 
   <!-- Viewer.js (Prohlížeč obrázků) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
