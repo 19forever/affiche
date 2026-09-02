@@ -85,13 +85,14 @@ async function loadPosterForEdit() {
   }
 }
 
-// 3. Příprava AI CLIP Modelu (Transformers.js)
 async function preloadClipModel() {
   try {
     const tf = window.transformers;
     if (tf) {
       tf.env.allowLocalModels = false;
-      
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
+      tf.env.remotePath = '';
+
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
       featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
@@ -103,13 +104,14 @@ async function preloadClipModel() {
   }
 }
 
-// Vytvoření AI vektoru z lokálně vybraného obrázku
 async function generateImageEmbeddingFromFile(file) {
   try {
     const tf = window.transformers;
     if (!tf || !file) return null;
 
     tf.env.allowLocalModels = false;
+    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
+    tf.env.remotePath = '';
 
     if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -125,14 +127,15 @@ async function generateImageEmbeddingFromFile(file) {
   }
 }
 
-// Záložní vytvoření AI vektoru z textových polí plakátu
 async function generateTextEmbeddingForPoster(text) {
   try {
     const tf = window.transformers;
     if (!tf || !text.trim()) return null;
 
     tf.env.allowLocalModels = false;
-      
+    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
+    tf.env.remotePath = '';
+
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
 
