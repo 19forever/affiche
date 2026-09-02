@@ -259,7 +259,7 @@ function renderPosters(posters) {
     card.innerHTML = `
       <div class="poster-img-wrapper">
         ${detailBadgeHTML}
-        <img src="${mainImgSrc}" loading="lazy" alt="${p.title}" onerror="this.onerror=null; this.src='${MISSING_POSTER_SVG}';">
+        <img src="${mainImgSrc}" loading="lazy" alt="${p.title}" oncontextmenu="return false;" onerror="this.onerror=null; this.src='${MISSING_POSTER_SVG}';">
       </div>
       <div class="poster-info">
         <div class="poster-title">${p.title}</div>
