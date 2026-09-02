@@ -177,3 +177,14 @@ input:focus, select:focus, textarea:focus {
     font-size: 1.75rem;
   }
 }
+
+/* Ochrana skenů ve Viewer.js proti stažení pravým tlačítkem */
+.viewer-container {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+.viewer-canvas img {
+  pointer-events: none; /* Pravé tlačítko klikne na plátno, ne přímo na fotku */
+}
