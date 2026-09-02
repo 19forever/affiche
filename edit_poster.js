@@ -237,23 +237,50 @@ async function saveCurrentRecordToSupabase() {
 
 async function addNewRecord() {
   saveCurrentFormToMemory();
-  const newRecord = { title: 'Nový plakát', period_era: 'Art Deco', is_public: true };
 
-  showStatus('➕ Vytvářím nový záznam...', 'gold');
+  // Vytvoříme plnohodnotný výchozí objekt se všemi poli (stejně jako u duplikace)
+  const newRecord = {
+    title: 'Nový plakát',
+    author: '',
+    client: '',
+    product_subject: '',
+    period_era: 'Art Deco',
+    year: null,
+    year_approx: '',
+    printer: '',
+    dimensions: '',
+    soubor_hlavni: '',
+    soubory_detaily: '',
+    note: '',
+    is_public: true
+  };
+
+  showStatus('➕ Vytvářím nový záznam v Supabase...', 'gold');
+
   try {
     const { data, error } = await supabaseClient
       .from('posters')
       .insert([newRecord])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase Insert Error:", error);
+      throw error;
+    }
 
+    if (!data || data.length === 0) {
+      throw new Error("Databáze nevrátila vytvořený záznam.");
+    }
+
+    // Přidáme nový záznam do lokálního pole a přepneme na něj formulář
     fullDbData.push(data[0]);
     populateRecordSelect();
     loadRecordByIndex(fullDbData.length - 1);
+
     showStatus(`✅ Vytvořen nový plakát #${data[0].id}`, 'green');
   } catch (err) {
-    showStatus('❌ Chyba při vytváření: ' + err.message, 'red');
+    console.error("Chyba při vytváření záznamu:", err);
+    showStatus('❌ Chyba při vytváření: ' + (err.message || 'Neznámá chyba'), 'red');
   }
 }
 
