@@ -71,7 +71,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadDataFromSupabase() {
-  showStatus('🔄 Načítám data ze Supabase...', 'yellow');
+  showStatus('🔄 Načítám data ze Supabase...', 'gold');
   try {
     const { data, error } = await supabaseClient
       .from('posters')
@@ -207,7 +207,7 @@ async function saveCurrentRecordToSupabase() {
   const record = fullDbData[currentRecordIndex];
   if (!record) return;
 
-  showStatus('🚀 Ukládám do databáze...', 'yellow');
+  showStatus('🚀 Ukládám do databáze...', 'gold');
 
   const payload = {
     ...record,
@@ -239,7 +239,7 @@ async function addNewRecord() {
   saveCurrentFormToMemory();
   const newRecord = { title: 'Nový plakát', period_era: 'Art Deco', is_public: true };
 
-  showStatus('➕ Vytvářím nový záznam...', 'yellow');
+  showStatus('➕ Vytvářím nový záznam...', 'gold');
   try {
     const { data, error } = await supabaseClient
       .from('posters')
@@ -265,7 +265,7 @@ async function duplicateCurrentRecord() {
   const { id, ...clone } = current;
   clone.title = (clone.title || '') + ' (Kopie)';
 
-  showStatus('📋 Duplikuji plakát...', 'yellow');
+  showStatus('📋 Duplikuji plakát...', 'gold');
   try {
     const { data, error } = await supabaseClient
       .from('posters')
@@ -289,7 +289,7 @@ async function deleteCurrentRecord() {
 
   if (!confirm(`Opravdu chcete SMAZAT plakát #${record.id} (${record.title})?`)) return;
 
-  showStatus(`🗑️ Mažu plakát #${record.id}...`, 'yellow');
+  showStatus(`🗑️ Mažu plakát #${record.id}...`, 'gold');
   try {
     const { error } = await supabaseClient
       .from('posters')
@@ -321,8 +321,8 @@ function showStatus(msg, color) {
     el.style.border = '1px solid #dc2626';
     el.style.color = '#f87171';
   } else {
-    el.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
-    el.style.border = '1px solid #f59e0b';
-    el.style.color = '#fbbf24';
+    el.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
+    el.style.border = '1px solid #d4af37';
+    el.style.color = '#d4af37';
   }
 }
