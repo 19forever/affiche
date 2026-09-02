@@ -123,6 +123,22 @@
     <div id="paginationContainer" style="display: flex; gap: 8px; justify-content: center; margin-top: 30px; flex-wrap: wrap;"></div>
   </div>
 
+<!-- MODAL PRO POZNÁMKU / POPIS -->
+<div id="noteModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(6px); align-items: center; justify-content: center; z-index: 9999;">
+  <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; width: 90%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+      <h3 id="noteModalTitle" style="color: var(--accent-gold); font-size: 1.1rem; font-weight: 600; margin: 0;">📝 Poznámka k plakátu</h3>
+      <button type="button" onclick="closeNoteModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; line-height: 1;">✖</button>
+    </div>
+    <div id="noteModalText" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+      <!-- Sem se vloží text poznámky -->
+    </div>
+    <div style="text-align: right; margin-top: 20px;">
+      <button type="button" class="btn-admin" onclick="closeNoteModal()" style="padding: 6px 16px;">Zavřít</button>
+    </div>
+  </div>
+</div>
+  
   <!-- ADMIN LOGIN MODAL -->
   <div id="loginModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(6px); align-items: center; justify-content: center; z-index: 9999;">
     <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 30px; width: 100%; max-width: 380px;">
