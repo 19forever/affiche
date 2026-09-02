@@ -1,6 +1,5 @@
 let allPosters = [];
 let filteredPosters = [];
-let currentLayout = 'grid';
 
 let currentPage = 1;
 let pageSize = 50;
@@ -9,10 +8,11 @@ let currentEra = '';
 let activeViewerInstance = null;
 
 const MISSING_POSTER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <rect width="600" height="400" fill="#161e2e"/>
-  <text x="300" y="200" font-family="-apple-system, sans-serif" font-size="20" fill="#d97706" text-anchor="middle" font-weight="bold">AFFICHE ARCHIVE</text>
-  <text x="300" y="235" font-family="-apple-system, sans-serif" font-size="14" fill="#9ca3af" text-anchor="middle">Sken zatím není k dispozici</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+  <rect width="300" height="400" fill="#181818"/>
+  <rect x="15" y="15" width="270" height="370" rx="6" fill="none" stroke="#2a2a2a" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="150" y="190" font-family="sans-serif" font-size="16" fill="#d4af37" text-anchor="middle" font-weight="bold">AFFICHE</text>
+  <text x="150" y="215" font-family="sans-serif" font-size="12" fill="#a0a0a0" text-anchor="middle">Sken není k dispozici</text>
 </svg>
 `)}`;
 
@@ -50,13 +50,8 @@ function setupEventListeners() {
     });
   }
 
-  document.getElementById('searchClearBtn')?.addEventListener('click', () => {
-    if (searchInput) searchInput.value = '';
-    filterData();
-  });
-
-  document.getElementById('eraFilter')?.addEventListener('change', () => {
-    currentEra = document.getElementById('eraFilter').value;
+  document.getElementById('eraFilter')?.addEventListener('change', (e) => {
+    currentEra = e.target.value;
     currentPage = 1;
     filterData();
   });
@@ -70,9 +65,6 @@ function setupEventListeners() {
     currentPage = 1;
     renderPaginated();
   });
-
-  document.getElementById('btnGrid')?.addEventListener('click', () => setLayout('grid'));
-  document.getElementById('btnList')?.addEventListener('click', () => setLayout('list'));
 }
 
 async function loadDataFromSupabase() {
@@ -187,18 +179,18 @@ function renderPosters(posters) {
 
   posters.forEach((p) => {
     const card = document.createElement('div');
-    card.className = 'ticket-card';
+    card.className = 'poster-card';
 
     const detailFiles = (p.soubory_detaily || '').split(',').map(s => s.trim()).filter(Boolean);
     const detailCount = detailFiles.length;
 
     const detailBadgeHTML = detailCount > 0 
-      ? `<div class="scan-count-badge" title="${detailCount} detailních snímků"><span class="badge-icon">🔍</span> ${detailCount}</div>`
+      ? `<div class="detail-badge">🔍 ${detailCount}</div>`
       : '';
 
-    const editSlotHTML = isAdmin 
-      ? `<button class="icon-btn btn-action-edit" title="Upravit v editoru" onclick="event.stopPropagation(); window.location.href='edit_poster.html?id=${p.id}';">✏️</button>`
-      : '<div class="grid-slot-empty"></div>';
+    const editBtnHTML = isAdmin 
+      ? `<button class="btn-card-edit" onclick="event.stopPropagation(); window.location.href='edit_poster.html?id=${p.id}'">✏️ Upravit</button>`
+      : '';
 
     const mainImgSrc = p.soubor_hlavni ? `./scans/${p.soubor_hlavni}` : MISSING_POSTER_SVG;
     const authorText = p.author ? p.author : 'Neznámý autor';
@@ -207,28 +199,18 @@ function renderPosters(posters) {
     card.onclick = () => openPosterGallery(p);
 
     card.innerHTML = `
-      <div class="card-img-wrapper">
+      <div class="poster-img-wrapper">
         ${detailBadgeHTML}
         <img src="${mainImgSrc}" loading="lazy" alt="${p.title}" onerror="this.onerror=null; this.src='${MISSING_POSTER_SVG}';">
       </div>
-      <div class="card-content">
-        <div class="card-meta-line1">
-          <span class="card-date">${yearText}</span>
-          <div class="card-meta-right">
-            <span class="category-badge">🖼️ ${p.period_era || 'Plakát'}</span>
-          </div>
+      <div class="poster-info">
+        <div class="poster-title">${p.title}</div>
+        <div class="poster-author">${authorText}</div>
+        <div class="poster-meta">
+          ${yearText ? `<span>${yearText}</span>` : ''}
+          ${p.client ? ` • <span>${p.client}</span>` : ''}
         </div>
-        <div class="card-location-line2" style="font-weight: 700; color: var(--text-heading); margin-top: 4px;">${p.title}</div>
-        <div class="card-location-line2">${authorText}${p.client ? ` • ${p.client}` : ''}</div>
-        <div class="card-actions-grid card-actions">
-          ${editSlotHTML}
-          <div class="grid-slot-empty"></div>
-          <div class="grid-slot-empty"></div>
-          <div class="grid-slot-empty"></div>
-          <div class="grid-slot-empty"></div>
-          <div class="grid-slot-empty"></div>
-          <div class="grid-slot-empty"></div>
-        </div>
+        ${editBtnHTML}
       </div>
     `;
 
@@ -245,7 +227,7 @@ function renderPaginationControls() {
   const totalPages = Math.ceil(filteredPosters.length / pageSize);
 
   const prevBtn = document.createElement('button');
-  prevBtn.className = 'page-btn'; 
+  prevBtn.className = 'btn-admin'; 
   prevBtn.textContent = '◄ Předchozí';
   prevBtn.disabled = currentPage === 1;
   prevBtn.onclick = () => { 
@@ -266,7 +248,7 @@ function renderPaginationControls() {
       continue;
     }
     const pageBtn = document.createElement('button');
-    pageBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`; 
+    pageBtn.className = `btn-admin ${i === currentPage ? 'btn-green' : ''}`; 
     pageBtn.textContent = i;
     pageBtn.onclick = () => { 
       currentPage = i; 
@@ -277,7 +259,7 @@ function renderPaginationControls() {
   }
 
   const nextBtn = document.createElement('button');
-  nextBtn.className = 'page-btn'; 
+  nextBtn.className = 'btn-admin'; 
   nextBtn.textContent = 'Další ►';
   nextBtn.disabled = currentPage === totalPages;
   nextBtn.onclick = () => { 
@@ -286,19 +268,6 @@ function renderPaginationControls() {
     window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
   container.appendChild(nextBtn);
-}
-
-function setLayout(layout) {
-  currentLayout = layout;
-  const btnGrid = document.getElementById('btnGrid');
-  const btnList = document.getElementById('btnList');
-  const container = document.getElementById('postersContainer');
-
-  if (btnGrid) btnGrid.className = `toggle-btn ${layout === 'grid' ? 'active' : ''}`;
-  if (btnList) btnList.className = `toggle-btn ${layout === 'list' ? 'active' : ''}`;
-  if (container) container.className = `tickets-container ${layout}-view`;
-
-  renderPaginated();
 }
 
 function openPosterGallery(poster) {
