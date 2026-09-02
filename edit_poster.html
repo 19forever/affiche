@@ -3,153 +3,384 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Affiche Editor - Správa plakátů</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Editor plakátů - Affiche Archive</title>
   
-  <!-- Supabase JS Client -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f59e0b">
+
+  <!-- Supabase JS Client & Config -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
-  
-<!-- ES Modul + zpřístupnění do window.transformers -->
-<script type="module">
-  import * as transformers from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-  window.transformers = transformers;
-</script>
+
+  <!-- Viewer.js (Prohlížeč obrázků) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
 
   <style>
-    .editor-container { max-width: 800px; margin: 30px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); }
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; margin-bottom: 8px; color: var(--accent-gold); font-size: 0.9rem; font-weight: 600; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
-    .btn-submit { background: var(--accent-gold); color: #000; font-weight: bold; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 10px; }
-    .btn-submit:hover { opacity: 0.9; }
-    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-    .auth-gate { text-align: center; padding: 40px 20px; }
-    textarea { width: 100%; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; resize: vertical; min-height: 80px; }
-    .file-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    :root {
+      --bg-main: #0f0f0f;
+      --bg-panel: #141414;
+      --bg-card: #161616;
+      --text-main: #e0e0e0;
+      --text-muted: #9ca3af;
+      --accent-yellow: #f59e0b;
+      --accent-yellow-bright: #fbbf24;
+      --border-color: #2a2a2a;
+      --border-color-light: #333333;
+      --font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      background-color: var(--accent-yellow);
+      color: #000;
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.3rem;
+    }
+
+    h1 { font-size: 1.35rem; color: #fff; font-weight: 700; }
+
+    .btn-back {
+      background-color: #1a1a1a;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover { border-color: var(--accent-yellow); color: var(--accent-yellow); }
+
+    .btn-lock {
+      background-color: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .record-nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      background-color: #1a1a1a;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .select-jump {
+      background-color: #0d0d0d;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      max-width: 280px;
+    }
+
+    .btn-add-new { background-color: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .btn-dup { background-color: var(--accent-yellow); color: #000; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .btn-del { background-color: #ef4444; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+
+    .main-editor-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .scan-preview-sticky {
+      position: sticky;
+      top: 20px;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .img-box {
+      background-color: #0d0d0d;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 250px;
+      max-height: 480px;
+      overflow: hidden;
+    }
+
+    .img-box img { max-width: 100%; max-height: 440px; object-fit: contain; cursor: zoom-in; }
+
+    .thumb-list { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    .thumb-item { width: 52px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color-light); cursor: pointer; opacity: 0.6; }
+    .thumb-item.active { opacity: 1; border-color: var(--accent-yellow); }
+
+    .form-panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-panel h3 {
+      font-size: 0.8rem;
+      color: var(--accent-yellow);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+
+    label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+
+    input, select, textarea {
+      background-color: #0d0d0d;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); }
+
+    .action-bar { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+    .btn-github { background-color: #16a34a; color: #fff; border: none; padding: 10px 22px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+
+    #statusMessage {
+      margin-top: 15px;
+      padding: 12px 16px;
+      border-radius: 6px;
+      display: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
 
-  <header class="top-header">
-    <div class="container">
-      <div class="header-content">
-        <div>
-          <h1>Affiche <span>Editor</span></h1>
-          <p style="margin-top: 4px;"><a href="index.html" style="color: var(--accent-gold); text-decoration: none;">← Zpět na přehled sbírky</a></p>
+  <!-- ADMIN LOGIN GATE MODAL -->
+  <div id="gateModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+    <div style="background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; padding: 30px; width: 100%; max-width: 380px;">
+      <div style="text-align: center; font-size: 2rem; margin-bottom: 10px;">🔒</div>
+      <h2 style="text-align: center; color: #fff; margin-bottom: 6px; font-size: 1.25rem;">Admin Přihlášení</h2>
+      <p style="text-align: center; color: #9ca3af; font-size: 0.8rem; margin-bottom: 20px;">Zadejte přihlašovací údaje pro správa plakátů Affiche.</p>
+
+      <form onsubmit="event.preventDefault(); handleSupabaseLogin();">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">EMAIL</label>
+          <input type="email" id="loginEmail" placeholder="admin@domain.cz" style="width: 100%;" required>
         </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">HESLO</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" style="width: 100%;" required>
+        </div>
+
+        <div id="loginError" style="display: none; color: #f87171; font-size: 0.75rem; margin-bottom: 12px; text-align: center;"></div>
+
+        <button type="submit" style="width: 100%; background: #16a34a; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: 700; cursor: pointer;">
+          🔓 Přihlásit se
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 15px;">
+        <a href="index.html" style="color: #f59e0b; text-decoration: none; font-size: 0.8rem;">◄ Zpět na Sbírku</a>
       </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-left">
+      <div class="logo">AF</div>
+      <h1>✏️ Editor plakátů: <span id="recordIdTitle" style="color: var(--accent-yellow);">...</span></h1>
+    </div>
+    <div class="header-actions" style="display: flex; gap: 10px;">
+      <button class="btn-lock" onclick="lockAdminSession()">🔒 Odhlásit</button>
+      <a href="index.html" class="btn-back">◄ Zpět na Sbírku</a>
     </div>
   </header>
 
-  <main class="container">
-    <!-- Přihlašovací formulář pro administrátora -->
-    <div id="loginGate" class="editor-container auth-gate">
-      <h2>🔒 Přihlášení Administrátora</h2>
-      <p style="color: var(--text-muted); margin: 15px 0;">Pro vkládání a úpravu plakátů se prosím přihlaste.</p>
-      <div class="form-group" style="max-width: 360px; margin: 0 auto 15px auto;">
-        <input type="email" id="adminEmail" placeholder="E-mail">
+  <!-- Navigační lišta -->
+  <div class="record-nav-bar">
+    <div style="display: flex; align-items: center;">
+      <button class="nav-btn" id="prevBtn" onclick="navigateRecord(-1)">◄</button>
+      <div id="recordCounter" style="margin: 0 10px; color: var(--accent-yellow); font-weight: 700; font-size: 0.85rem;">Plakát 0 z 0</div>
+      <button class="nav-btn" id="nextBtn" onclick="navigateRecord(1)">►</button>
+    </div>
+    
+    <select id="recordSelect" class="select-jump" onchange="jumpToSelectedRecord()"></select>
+
+    <div style="display: flex; gap: 8px;">
+      <button class="btn-add-new" onclick="addNewRecord()">➕ Přidat nový</button>
+      <button class="btn-dup" onclick="duplicateCurrentRecord()">📋 Duplikovat</button>
+      <button class="btn-del" onclick="deleteCurrentRecord()">🗑️ Smazat</button>
+    </div>
+  </div>
+
+  <div class="main-editor-layout">
+    <!-- Levý sloupec: Náhled skenu -->
+    <div class="scan-preview-sticky">
+      <h3 style="font-size: 0.75rem; color: var(--accent-yellow); margin-bottom: 10px;">🔍 Náhled obrázku</h3>
+      <div class="img-box">
+        <img id="previewImg" src="" alt="Náhled plakátu">
       </div>
-      <div class="form-group" style="max-width: 360px; margin: 0 auto 20px auto;">
-        <input type="password" id="adminPassword" placeholder="Heslo">
-      </div>
-      <button class="btn-submit" style="max-width: 360px;" onclick="handleLogin()">Přihlásit se</button>
-      <div id="loginError" style="color: #ef4444; margin-top: 15px; font-size: 0.85rem;"></div>
+      <div class="thumb-list" id="thumbList"></div>
     </div>
 
-    <!-- Hlavní formulář editoru -->
-    <div id="editorForm" class="editor-container" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
-        <h2 id="formTitle">➕ Přidat nový plakát / reklamu</h2>
-        <button onclick="handleLogout()" style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Odhlásit</button>
-      </div>
-
-      <form id="posterForm" onsubmit="savePoster(event)">
-        <input type="hidden" id="posterId">
-
-        <div class="form-group">
-          <label for="title">Název motivu / Titulek *</label>
-          <input type="text" id="title" required placeholder="např. Mai d'or - Vivaudou">
-        </div>
-
-        <div class="form-row">
+    <!-- Pravý sloupec: Formulář -->
+    <form id="editForm" onsubmit="event.preventDefault();">
+      <div class="form-panel">
+        <h3>Základní údaje</h3>
+        <div class="grid-3">
           <div class="form-group">
-            <label for="author">Autor / Grafik</label>
-            <input type="text" id="author" placeholder="např. F.L.P. nebo Alphonse Mucha">
+            <label for="edit_id">ID Plakátu</label>
+            <input type="text" id="edit_id" name="id" readonly style="opacity: 0.6;">
           </div>
           <div class="form-group">
-            <label for="client">Klient / Objednatel / Značka</label>
-            <input type="text" id="client" placeholder="např. Vivaudou Paris">
+            <label for="edit_title">Náhled / Název plakátu</label>
+            <input type="text" id="edit_title" name="title" required>
+          </div>
+          <div class="form-group">
+            <label for="edit_author">Autor / Výtvarník</label>
+            <input type="text" id="edit_author" name="author" placeholder="např. Alphonse Mucha">
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="grid-3" style="margin-top: 10px;">
           <div class="form-group">
-            <label for="year">Přesný rok</label>
-            <input type="number" id="year" placeholder="1923">
+            <label for="edit_client">Klient / Zadač</label>
+            <input type="text" id="edit_client" name="client">
           </div>
           <div class="form-group">
-            <label for="year_approx">Přibližný rok / Dekáda</label>
-            <input type="text" id="year_approx" placeholder="např. cca 1920s">
+            <label for="edit_product_subject">Produkt / Téma</label>
+            <input type="text" id="edit_product_subject" name="product_subject">
           </div>
-        </div>
-
-        <div class="form-row">
           <div class="form-group">
-            <label for="period_era">Sloh / Období</label>
-            <select id="period_era">
-              <option value="Art Deco">Art Deco</option>
+            <label for="edit_period_era">Období / Styl</label>
+            <select id="edit_period_era" name="period_era">
               <option value="Secese">Secese</option>
+              <option value="Art Deco">Art Deco</option>
               <option value="První republika">První republika</option>
               <option value="Bauhaus">Bauhaus</option>
               <option value="Předválečné">Předválečné</option>
-              <option value="Jiné">Jiné</option>
             </select>
           </div>
+        </div>
+
+        <div class="grid-3" style="margin-top: 10px;">
           <div class="form-group">
-            <label for="product_subject">Zboží / Událost</label>
-            <input type="text" id="product_subject" placeholder="např. Parfém Mai d'or">
+            <label for="edit_year">Rok (číslo)</label>
+            <input type="number" id="edit_year" name="year" placeholder="1925">
+          </div>
+          <div class="form-group">
+            <label for="edit_year_approx">Přibližný rok / text</label>
+            <input type="text" id="edit_year_approx" name="year_approx" placeholder="ca. 1925">
+          </div>
+          <div class="form-group">
+            <label for="edit_printer">Tiskárna / Tiskař</label>
+            <input type="text" id="edit_printer" name="printer">
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label for="edit_dimensions">Rozměry</label>
+          <input type="text" id="edit_dimensions" name="dimensions" placeholder="např. 60 x 90 cm">
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label for="edit_note">Poznámka / Popis</label>
+          <textarea id="edit_note" name="note" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <h3>Soubory a Zobrazení</h3>
+        <div class="grid-2">
           <div class="form-group">
-            <label for="printer">Tiskárna / Vydavatelství</label>
-            <input type="text" id="printer" placeholder="např. The Ladies' Home Journal">
+            <label for="edit_soubor_hlavni">Hlavní sken (soubor)</label>
+            <input type="text" id="edit_soubor_hlavni" name="soubor_hlavni" placeholder="plakat_01.jpg" oninput="updateImageFromInput()">
           </div>
           <div class="form-group">
-            <label for="dimensions">Rozměry</label>
-            <input type="text" id="dimensions" placeholder="např. 25 x 35 cm">
+            <label for="edit_soubory_detaily">Detailní skeny (oddělené čárkou)</label>
+            <input type="text" id="edit_soubory_detaily" name="soubory_detaily" placeholder="det_01.jpg, det_02.jpg" oninput="updateImageFromInput()">
           </div>
         </div>
+      </div>
 
-        <!-- Nahrání lokálního souboru pro AI analýzu -->
-        <div class="form-group" style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed var(--accent-gold);">
-          <label for="file_input">🤖 Obrázek pro vygenerování AI vektoru (z počítače)</label>
-          <input type="file" id="file_input" accept="image/*">
-          <div class="file-hint">Vyberte soubor plakátu z disku. AI model z něj v prohlížeči vygeneruje vizuální otisk do databáze.</div>
-        </div>
+      <div class="action-bar">
+        <button class="btn-github" type="button" onclick="saveCurrentRecordToSupabase()">🚀 Uložit do Supabase</button>
+      </div>
 
-        <div class="form-group">
-          <label for="soubor_hlavni">Soubor hlavního skenu na GitHubu * (ve složce ./scans)</label>
-          <input type="text" id="soubor_hlavni" required placeholder="vivaudou_full.jpg">
-        </div>
-
-        <div class="form-group">
-          <label for="soubory_detaily">Soubory detailů (oddělené čárkou)</label>
-          <input type="text" id="soubory_detaily" placeholder="detail_signatura.jpg, detail_razitko.jpg">
-        </div>
-
-        <div class="form-group">
-          <label for="note">Detailní popis / Transkripce textu / Poznámka</label>
-          <textarea id="note" placeholder="Zadejte texty z plakátu, popis tiskové techniky..."></textarea>
-        </div>
-
-        <button type="submit" class="btn-submit">💾 Uložit plakát do databáze</button>
-      </form>
-    </div>
-  </main>
+      <div id="statusMessage"></div>
+    </form>
+  </div>
 
   <script src="edit_poster.js"></script>
 </body>
