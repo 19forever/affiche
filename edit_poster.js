@@ -90,9 +90,9 @@ async function preloadClipModel() {
     const tf = window.transformers;
     if (tf) {
       // Vynutit stahování z veřejného CDN a vypnout lokální adresář
-      tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://huggingface.co/';
-      tf.env.remotePath = '{model}/resolve/main/';
+     tf.env.allowLocalModels = false;
+tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
+tf.env.remotePath = '{model}/';
       
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -112,8 +112,8 @@ async function generateImageEmbeddingFromFile(file) {
     if (tf) {
       // Vynutit stahování z veřejného CDN a vypnout lokální adresář
       tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://huggingface.co/';
-      tf.env.remotePath = '{model}/resolve/main/';
+tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
+tf.env.remotePath = '{model}/';
 
     if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
