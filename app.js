@@ -16,6 +16,7 @@ const MISSING_POSTER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+// Kontrola přihlášeného admina
 function checkIsAdmin() {
   try {
     return localStorage.getItem('affiche_admin_mode') === 'true';
@@ -24,19 +25,87 @@ function checkIsAdmin() {
   }
 }
 
+// Otevření a zavření modálu na hlavní stránce
+window.openLoginModal = function() {
+  const modal = document.getElementById('loginModal');
+  if (modal) modal.style.display = 'flex';
+};
+
+window.closeLoginModal = function() {
+  const modal = document.getElementById('loginModal');
+  if (modal) modal.style.display = 'none';
+};
+
+// Přihlášení přes Supabase credentials z index.html
+window.handleSupabaseLoginIndex = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  const errEl = document.getElementById('loginError');
+
+  if (errEl) errEl.style.display = 'none';
+
+  if (typeof supabaseClient === 'undefined' || !supabaseClient.auth) {
+    if (errEl) {
+      errEl.textContent = '❌ Supabase klient není připojen.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    if (errEl) {
+      errEl.textContent = '❌ Chyba přihlášení: ' + error.message;
+      errEl.style.display = 'block';
+    }
+  } else {
+    localStorage.setItem('affiche_admin_mode', 'true');
+    closeLoginModal();
+    updateAdminControls();
+    filterData(); // Přenačte karty s tlačítky pro úpravu
+  }
+};
+
+// Odhlášení admina
 window.lockAdminSession = async function() {
   if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
     await supabaseClient.auth.signOut();
   }
   localStorage.removeItem('affiche_admin_mode');
-  window.location.reload();
+  updateAdminControls();
+  filterData();
 };
 
-window.handleAdminLogin = function() {
-  window.location.href = 'edit_poster.html';
-};
+// Ověření platné relace při načtení stránky
+async function checkAuthOnLoad() {
+  if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      localStorage.setItem('affiche_admin_mode', 'true');
+    } else {
+      localStorage.removeItem('affiche_admin_mode');
+    }
+  }
+  updateAdminControls();
+}
 
-document.addEventListener('DOMContentLoaded', () => {
+function updateAdminControls() {
+  const isAdmin = checkIsAdmin();
+  const adminEditorLink = document.getElementById('adminEditorLink');
+  const adminLoginLink = document.getElementById('adminLoginLink');
+  const adminLockBtn = document.getElementById('adminLockBtn');
+
+  if (adminEditorLink) adminEditorLink.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (adminLoginLink) adminLoginLink.style.display = isAdmin ? 'none' : 'inline-flex';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuthOnLoad();
   setupEventListeners();
   loadDataFromSupabase();
 });
@@ -88,17 +157,6 @@ async function loadDataFromSupabase() {
   } catch (err) {
     console.error("Chyba při načítání plakátů:", err.message);
   }
-}
-
-function updateAdminControls() {
-  const isAdmin = checkIsAdmin();
-  const adminEditorLink = document.getElementById('adminEditorLink');
-  const adminLoginLink = document.getElementById('adminLoginLink');
-  const adminLockBtn = document.getElementById('adminLockBtn');
-
-  if (adminEditorLink) adminEditorLink.style.display = isAdmin ? 'inline-flex' : 'none';
-  if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-  if (adminLoginLink) adminLoginLink.style.display = isAdmin ? 'none' : 'inline-flex';
 }
 
 function populateEraFilter() {
