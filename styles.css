@@ -188,3 +188,14 @@ input:focus, select:focus, textarea:focus {
 .viewer-canvas img {
   pointer-events: none; /* Pravé tlačítko klikne na plátno, ne přímo na fotku */
 }
+
+/* Ochrana obrázků v mřížce proti stažení a přetažení myší */
+.poster-img-wrapper {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+.poster-img-wrapper img {
+  pointer-events: none; /* Zamezí kliknutí pravou myší přímo na soubor obrázku */
+}
