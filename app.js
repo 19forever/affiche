@@ -9,11 +9,10 @@ let currentEra = '';
 let activeViewerInstance = null;
 
 const MISSING_POSTER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
-  <rect width="300" height="400" fill="#181818"/>
-  <rect x="20" y="20" width="260" height="360" rx="8" fill="none" stroke="#2a2a2a" stroke-width="2" stroke-dasharray="6 6"/>
-  <text x="150" y="190" font-family="sans-serif" font-size="16" fill="#f59e0b" text-anchor="middle" font-weight="bold">AFFICHE</text>
-  <text x="150" y="215" font-family="sans-serif" font-size="12" fill="#a0a0a0" text-anchor="middle">Sken zatím není k dispozici</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#161e2e"/>
+  <text x="300" y="200" font-family="-apple-system, sans-serif" font-size="20" fill="#d97706" text-anchor="middle" font-weight="bold">AFFICHE ARCHIVE</text>
+  <text x="300" y="235" font-family="-apple-system, sans-serif" font-size="14" fill="#9ca3af" text-anchor="middle">Sken zatím není k dispozici</text>
 </svg>
 `)}`;
 
@@ -194,12 +193,12 @@ function renderPosters(posters) {
     const detailCount = detailFiles.length;
 
     const detailBadgeHTML = detailCount > 0 
-      ? `<div class="scan-count-badge" title="${detailCount} detailních snímků">🔍 ${detailCount}</div>`
+      ? `<div class="scan-count-badge" title="${detailCount} detailních snímků"><span class="badge-icon">🔍</span> ${detailCount}</div>`
       : '';
 
-    const editBtnHTML = isAdmin 
-      ? `<button class="icon-btn btn-action-edit" onclick="event.stopPropagation(); window.location.href='edit_poster.html?id=${p.id}'" title="Upravit plakát" style="position: absolute; bottom: 8px; right: 8px; z-index: 5;">✏️</button>`
-      : '';
+    const editSlotHTML = isAdmin 
+      ? `<button class="icon-btn btn-action-edit" title="Upravit v editoru" onclick="event.stopPropagation(); window.location.href='edit_poster.html?id=${p.id}';">✏️</button>`
+      : '<div class="grid-slot-empty"></div>';
 
     const mainImgSrc = p.soubor_hlavni ? `./scans/${p.soubor_hlavni}` : MISSING_POSTER_SVG;
     const authorText = p.author ? p.author : 'Neznámý autor';
@@ -215,11 +214,21 @@ function renderPosters(posters) {
       <div class="card-content">
         <div class="card-meta-line1">
           <span class="card-date">${yearText}</span>
-          <span class="category-badge">${p.period_era || 'Plakát'}</span>
+          <div class="card-meta-right">
+            <span class="category-badge">🖼️ ${p.period_era || 'Plakát'}</span>
+          </div>
         </div>
-        <div class="card-location-line2" style="font-weight: 700; color: #fff; margin-top: 4px;">${p.title}</div>
+        <div class="card-location-line2" style="font-weight: 700; color: var(--text-heading); margin-top: 4px;">${p.title}</div>
         <div class="card-location-line2">${authorText}${p.client ? ` • ${p.client}` : ''}</div>
-        ${editBtnHTML}
+        <div class="card-actions-grid card-actions">
+          ${editSlotHTML}
+          <div class="grid-slot-empty"></div>
+          <div class="grid-slot-empty"></div>
+          <div class="grid-slot-empty"></div>
+          <div class="grid-slot-empty"></div>
+          <div class="grid-slot-empty"></div>
+          <div class="grid-slot-empty"></div>
+        </div>
       </div>
     `;
 
