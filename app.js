@@ -354,19 +354,26 @@ function openPosterGallery(poster) {
 
   document.body.appendChild(container);
 
-  activeViewerInstance = new Viewer(container, {
+activeViewerInstance = new Viewer(container, {
     backdrop: true,
+    title: function() {
+      const author = poster.author ? ` | Autor: ${poster.author}` : '';
+      const client = poster.client ? ` | Klient: ${poster.client}` : '';
+      return `${poster.title}${author}${client}`;
+    },
+    shown: function() {
+      // Zákaz pravého tlačítka myši v celém okně Viewer.js
+      const viewerCanvas = document.querySelector('.viewer-container');
+      if (viewerCanvas) {
+        viewerCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+      }
+    },
     hidden: function() {
       if (activeViewerInstance) {
         activeViewerInstance.destroy();
         activeViewerInstance = null;
       }
       if (container.parentNode) document.body.removeChild(container);
-    },
-    title: function() {
-      const author = poster.author ? ` | Autor: ${poster.author}` : '';
-      const client = poster.client ? ` | Klient: ${poster.client}` : '';
-      return `${poster.title}${author}${client}`;
     }
   });
 
