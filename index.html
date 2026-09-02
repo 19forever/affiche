@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Affiche - Sbírka reklamních plakátů</title>
-  
-  <meta name="description" content="Digitální archiv a sbírka historických reklamních plakátů a časopisecké grafiky.">
-  <meta name="theme-color" content="#f59e0b">
+  <title>Affiche - Art Poster Archive</title>
 
   <!-- Supabase JS Client & Config -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,7 +12,7 @@
   <!-- External Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Viewer.js (Prohlížeč obrázků) -->
+  <!-- Viewer.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
 </head>
@@ -26,7 +23,7 @@
       <div class="header-left">
         <div class="logo">AF</div>
         <div class="title-area">
-          <h1>Affiche <span class="year-badge" id="yearBadge">Art Poster Archive</span></h1>
+          <h1>Affiche <span class="year-badge" id="yearBadge">Poster Archive</span></h1>
           <p>Kolekce historických reklamních plakátů a časopisecké grafiky</p>
         </div>
       </div>
@@ -68,6 +65,7 @@
         <option value="100">100 / str</option>
         <option value="ALL">VŠECHNY</option>
       </select>
+
       <div class="layout-toggles">
         <button class="toggle-btn active" id="btnGrid">⊞</button>
         <button class="toggle-btn" id="btnList">≡</button>
@@ -78,12 +76,11 @@
   <div id="postersContainer" class="tickets-container grid-view"></div>
   <div id="paginationContainer" class="pagination-container"></div>
 
-  <!-- Aplikace Scripts -->
   <script src="app.js"></script>
 
   <footer class="jj-museum-footer">
     <div class="footer-container">
-      <p class="disclaimer-title">📜 Affiche - Poster Archive</p>
+      <p class="disclaimer-title">📜 Affiche - Art Poster Archive</p>
       <p class="disclaimer-text">
         Nekomerční sbírkový archiv zaměřený na historickou knižní a plakátovou grafiku.
       </p>
