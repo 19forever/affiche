@@ -85,12 +85,13 @@ async function loadPostersFromSupabase() {
   }
 }
 
-// Příprava CLIP modelu pro generování vektoru z textového dotazu
 async function preloadTextEmbeddingModel() {
   try {
     const tf = window.transformers;
     if (tf) {
       tf.env.allowLocalModels = false;
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
+      tf.env.remotePath = '';
 
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -101,13 +102,14 @@ async function preloadTextEmbeddingModel() {
   }
 }
 
-// Převod textového dotazu na vektor
 async function generateTextEmbedding(text) {
   try {
     const tf = window.transformers;
     if (!tf || !text.trim()) return null;
 
     tf.env.allowLocalModels = false;
+    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
+    tf.env.remotePath = '';
 
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
