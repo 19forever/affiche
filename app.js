@@ -1,8 +1,9 @@
 let allPosters = [];
 let filteredPosters = [];
 let activeViewerInstance = null;
+let isUserAdmin = false;
 
-// AI Modely pro textové vyhledávání (Transformers.js)
+// AI Modely pro textové vyhledávání
 let tokenizer = null;
 let textModel = null;
 
@@ -28,15 +29,15 @@ async function checkAdminAuth() {
   if (typeof supabaseClient === 'undefined') return;
 
   const { data: { session } } = await supabaseClient.auth.getSession();
-  const isAdmin = !!session;
+  isUserAdmin = !!session;
 
   const editorBtn = document.getElementById('adminEditorBtn');
   const loginBtn = document.getElementById('adminLoginBtn');
   const logoutBtn = document.getElementById('adminLogoutBtn');
 
-  if (editorBtn) editorBtn.style.display = isAdmin ? 'inline-block' : 'none';
-  if (logoutBtn) logoutBtn.style.display = isAdmin ? 'inline-block' : 'none';
-  if (loginBtn) loginBtn.style.display = isAdmin ? 'none' : 'inline-block';
+  if (editorBtn) editorBtn.style.display = isUserAdmin ? 'inline-block' : 'none';
+  if (logoutBtn) logoutBtn.style.display = isUserAdmin ? 'inline-block' : 'none';
+  if (loginBtn) loginBtn.style.display = isUserAdmin ? 'none' : 'inline-block';
 }
 
 async function handleLogout() {
@@ -89,9 +90,7 @@ async function preloadTextEmbeddingModel() {
   try {
     const tf = window.transformers;
     if (tf) {
-     tf.env.allowLocalModels = false;
-tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-tf.env.remotePath = '{model}/';
+      tf.env.allowLocalModels = false;
 
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -109,8 +108,6 @@ async function generateTextEmbedding(text) {
     if (!tf || !text.trim()) return null;
 
     tf.env.allowLocalModels = false;
-tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-tf.env.remotePath = '{model}/';
 
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -125,7 +122,7 @@ tf.env.remotePath = '{model}/';
   }
 }
 
-// Hlavní vyhledávací a filtrovací logika (Hybridní AI + Text + Filtry)
+// Hlavní vyhledávací a filtrovací logika
 async function filterPosters() {
   const query = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
   const selectedEra = document.getElementById('eraFilter')?.value || '';
@@ -133,7 +130,6 @@ async function filterPosters() {
 
   let results = [...allPosters];
 
-  // 1. Filtrování podle vyhledávacího dotazu (Textové + AI)
   if (query.length > 0) {
     let aiMatchedIds = null;
 
@@ -152,7 +148,7 @@ async function filterPosters() {
           }
         }
       } catch (e) {
-        console.warn("AI sémantické vyhledávání vynecháno, používám textové hledání.", e);
+        console.warn("AI vyhledávání vynecháno, používám textové hledání.", e);
       }
     }
 
@@ -177,12 +173,10 @@ async function filterPosters() {
     });
   }
 
-  // 2. Filtrování podle období (select)
   if (selectedEra) {
     results = results.filter(p => (p.period_era || '').toLowerCase() === selectedEra.toLowerCase());
   }
 
-  // 3. Řazení
   if (sort === 'year_asc') {
     results.sort((a, b) => (a.year || 9999) - (b.year || 9999));
   } else if (sort === 'year_desc') {
@@ -217,6 +211,10 @@ function renderPosters(posters) {
       ? `<div class="detail-badge" title="${detailCount} detailních snímků">🔍 ${detailCount} ${detailCount === 1 ? 'detail' : 'detaily'}</div>`
       : '';
 
+    const editBtnHTML = isUserAdmin 
+      ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.location.href='edit_poster.html?id=${p.id}'" title="Upravit plakát">✏️ Upravit</button>`
+      : '';
+
     const mainImgSrc = p.soubor_hlavni ? `./scans/${p.soubor_hlavni}` : MISSING_POSTER_SVG;
     const authorText = p.author ? p.author : 'Neznámý autor';
     const yearText = p.year_approx ? p.year_approx : (p.year ? p.year : '');
@@ -226,6 +224,7 @@ function renderPosters(posters) {
     card.innerHTML = `
       <div class="poster-img-wrapper">
         ${detailBadgeHTML}
+        ${editBtnHTML}
         <img src="${mainImgSrc}" loading="lazy" alt="${p.title}" onerror="this.onerror=null; this.src='${MISSING_POSTER_SVG}';">
       </div>
       <div class="poster-info">
@@ -241,7 +240,7 @@ function renderPosters(posters) {
   });
 }
 
-// Prohlížeč obrázků (Viewer.js) - Hlavní sken + detaily
+// Prohlížeč obrázků (Viewer.js)
 function openPosterGallery(poster) {
   if (activeViewerInstance) {
     activeViewerInstance.destroy();
@@ -251,13 +250,11 @@ function openPosterGallery(poster) {
   const container = document.createElement('div');
   container.style.display = 'none';
 
-  // 1. Hlavní obrázek
   const mainImg = document.createElement('img');
   mainImg.src = poster.soubor_hlavni ? `./scans/${poster.soubor_hlavni}` : MISSING_POSTER_SVG;
   mainImg.alt = `${poster.title} - Hlavní náhled`;
   container.appendChild(mainImg);
 
-  // 2. Detaily
   if (poster.soubory_detaily) {
     const details = poster.soubory_detaily.split(',').map(s => s.trim()).filter(Boolean);
     details.forEach((detFile, idx) => {
