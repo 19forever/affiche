@@ -363,7 +363,7 @@ function openPosterGallery(poster) {
 
   document.body.appendChild(container);
 
-activeViewerInstance = new Viewer(container, {
+  activeViewerInstance = new Viewer(container, {
     backdrop: true,
     title: function() {
       const author = poster.author ? ` | Autor: ${poster.author}` : '';
@@ -387,29 +387,7 @@ activeViewerInstance = new Viewer(container, {
   });
 
   activeViewerInstance.show();
-  
 }
-
-activeViewerInstance = new Viewer(container, {
-    backdrop: true,
-    hidden: function() {
-      if (activeViewerInstance) {
-        activeViewerInstance.destroy();
-        activeViewerInstance = null;
-      }
-      if (container.parentNode) document.body.removeChild(container);
-    },
-    title: function() {
-      const author = poster.author ? ` | Autor: ${poster.author}` : '';
-      const client = poster.client ? ` | Klient: ${poster.client}` : '';
-      return `${poster.title}${author}${client}`;
-    }
-  });
-
-  activeViewerInstance.show();
-} // <-- TOTO JE POSLEDNÍ ZÁVORKA FUNKCE openPosterGallery
-
-// SEM VLOŽTE KÓD (AŽ ZA ZÁVORKU):
 
 // Obsluha modálu pro poznámky
 window.openNoteModal = function(title, noteText) {
