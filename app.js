@@ -246,6 +246,12 @@ function renderPosters(posters) {
       ? `<div class="detail-badge">🔍 ${detailCount}</div>`
       : '';
 
+    // Tlačítko pro poznámku (vykreslí se pouze v případě, že p.note není prázdná)
+    const hasNote = p.note && p.note.trim().length > 0;
+    const noteBtnHTML = hasNote 
+      ? `<button class="btn-card-edit" style="color: var(--text-main); border-color: var(--border-color);" onclick="event.stopPropagation(); openNoteModal('${p.title.replace(/'/g, "\\'")}', '${p.note.replace(/'/g, "\\'").replace(/\n/g, '\\n')}')">📝 Poznámka</button>`
+      : '';
+
     const editBtnHTML = isAdmin 
       ? `<button class="btn-card-edit" onclick="event.stopPropagation(); window.location.href='edit_poster.html?id=${p.id}'">✏️ Upravit</button>`
       : '';
@@ -268,7 +274,10 @@ function renderPosters(posters) {
           ${yearText ? `<span>${yearText}</span>` : ''}
           ${p.client ? ` • <span>${p.client}</span>` : ''}
         </div>
-        ${editBtnHTML}
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          ${noteBtnHTML}
+          ${editBtnHTML}
+        </div>
       </div>
     `;
 
@@ -378,4 +387,44 @@ activeViewerInstance = new Viewer(container, {
   });
 
   activeViewerInstance.show();
+  
 }
+
+activeViewerInstance = new Viewer(container, {
+    backdrop: true,
+    hidden: function() {
+      if (activeViewerInstance) {
+        activeViewerInstance.destroy();
+        activeViewerInstance = null;
+      }
+      if (container.parentNode) document.body.removeChild(container);
+    },
+    title: function() {
+      const author = poster.author ? ` | Autor: ${poster.author}` : '';
+      const client = poster.client ? ` | Klient: ${poster.client}` : '';
+      return `${poster.title}${author}${client}`;
+    }
+  });
+
+  activeViewerInstance.show();
+} // <-- TOTO JE POSLEDNÍ ZÁVORKA FUNKCE openPosterGallery
+
+// SEM VLOŽTE KÓD (AŽ ZA ZÁVORKU):
+
+// Obsluha modálu pro poznámky
+window.openNoteModal = function(title, noteText) {
+  const modal = document.getElementById('noteModal');
+  const titleEl = document.getElementById('noteModalTitle');
+  const textEl = document.getElementById('noteModalText');
+
+  if (modal && titleEl && textEl) {
+    titleEl.textContent = `📝 ${title}`;
+    textEl.textContent = noteText;
+    modal.style.display = 'flex';
+  }
+};
+
+window.closeNoteModal = function() {
+  const modal = document.getElementById('noteModal');
+  if (modal) modal.style.display = 'none';
+};
