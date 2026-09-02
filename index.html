@@ -17,7 +17,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
 
   <style>
-    /* Doplňková tlačítka do hlavičky pro admina */
     .admin-actions {
       display: flex;
       gap: 10px;
@@ -50,7 +49,6 @@
       background: #b91c1c;
       color: #fff;
     }
-    /* Tlačítko editace přímo na kartě plakátu */
     .btn-card-edit {
       margin-top: 6px;
       align-self: flex-start;
@@ -85,7 +83,7 @@
           <a href="edit_poster.html" id="adminEditorLink" class="btn-admin" style="display: none;">
             ✏️ Editor
           </a>
-          <button type="button" id="adminLoginLink" class="btn-admin" onclick="handleAdminLogin()">
+          <button type="button" id="adminLoginLink" class="btn-admin" onclick="openLoginModal()">
             🔒 Admin
           </button>
         </div>
@@ -123,6 +121,37 @@
 
     <!-- Stránkování -->
     <div id="paginationContainer" style="display: flex; gap: 8px; justify-content: center; margin-top: 30px; flex-wrap: wrap;"></div>
+  </div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div id="loginModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(6px); align-items: center; justify-content: center; z-index: 9999;">
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 30px; width: 100%; max-width: 380px;">
+      <div style="text-align: center; font-size: 2rem; margin-bottom: 10px;">🔒</div>
+      <h2 style="text-align: center; color: var(--accent-gold); margin-bottom: 6px; font-size: 1.25rem;">Admin Přihlášení</h2>
+      <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 20px;">Zadejte přihlašovací údaje ze Supabase.</p>
+
+      <form onsubmit="event.preventDefault(); handleSupabaseLoginIndex();">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">EMAIL</label>
+          <input type="email" id="loginEmail" placeholder="admin@domain.cz" style="width: 100%;" required>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">HESLO</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" style="width: 100%;" required>
+        </div>
+
+        <div id="loginError" style="display: none; color: #ef4444; font-size: 0.8rem; margin-bottom: 12px; text-align: center;"></div>
+
+        <button type="submit" class="btn-admin" style="width: 100%; justify-content: center; background: #16a34a; color: #fff; border: none; padding: 10px; font-weight: 700;">
+          🔓 Přihlásit se
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 15px;">
+        <button type="button" onclick="closeLoginModal()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem;">Zrušit</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
