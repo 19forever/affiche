@@ -12,80 +12,119 @@
   <!-- External Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Viewer.js -->
+  <!-- Viewer.js pro detailní prohlížení skenů -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+
+  <style>
+    /* Doplňková tlačítka do hlavičky pro admina */
+    .admin-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-admin {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-admin:hover {
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+    .btn-admin-logout {
+      background: #dc2626;
+      border: none;
+      color: #fff;
+    }
+    .btn-admin-logout:hover {
+      background: #b91c1c;
+      color: #fff;
+    }
+    /* Tlačítko editace přímo na kartě plakátu */
+    .btn-card-edit {
+      margin-top: 6px;
+      align-self: flex-start;
+      background: #1f2937;
+      border: 1px solid var(--border-color);
+      color: var(--accent-gold);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .btn-card-edit:hover {
+      background: #374151;
+    }
+  </style>
 </head>
 <body>
 
-  <div class="top-header-container">
-    <header>
-      <div class="header-left">
-        <div class="logo">AF</div>
-        <div class="title-area">
-          <h1>Affiche <span class="year-badge" id="yearBadge">Poster Archive</span></h1>
-          <p>Kolekce historických reklamních plakátů a časopisecké grafiky</p>
-        </div>
-      </div>
+  <div class="container">
+    <!-- Hlavička -->
+    <header class="top-header">
+      <div class="header-content">
+        <h1>
+          Affiche
+          <span>Art Poster Archive – Sbírka reklamních plakátů</span>
+        </h1>
 
-      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <button id="adminLockBtn" class="btn-contribute" style="display: none; background: #dc2626; color: #ffffff; border: none; cursor: pointer; font-family: inherit;" onclick="lockAdminSession()" title="Odhlásit admina">
-          🔒 Odhlásit
-        </button>
-        <a href="edit_poster.html" id="adminEditorLink" class="btn-contribute" style="display: none;" title="Otevřít Editor plakátů">
-          ✏️ Editor
-        </a>
-        <button type="button" id="adminLoginLink" class="btn-contribute" style="background: transparent; border: 1px solid var(--border-color-light, #333); cursor: pointer; font-family: inherit;" onclick="handleAdminLogin()" title="Přihlášení admina">
-          🔒 Admin
-        </button>
+        <div class="admin-actions">
+          <button type="button" id="adminLockBtn" class="btn-admin btn-admin-logout" style="display: none;" onclick="lockAdminSession()">
+            🔒 Odhlásit
+          </button>
+          <a href="edit_poster.html" id="adminEditorLink" class="btn-admin" style="display: none;">
+            ✏️ Editor
+          </a>
+          <button type="button" id="adminLoginLink" class="btn-admin" onclick="handleAdminLogin()">
+            🔒 Admin
+          </button>
+        </div>
       </div>
     </header>
 
-    <div class="category-tabs" id="categoryTabs"></div>
-
+    <!-- Ovládací prvky a vyhledávání -->
     <div class="controls">
-      <div class="search-input-wrapper">
+      <div class="search-wrapper">
         <input type="text" id="searchInput" placeholder="🔍 Hledat podle názvu, autora, klienta, produktu..." autofocus>
-        <button class="search-clear-btn" id="searchClearBtn" title="Vymazat hledání">✕</button>
       </div>
 
-      <select id="eraFilter" title="Filtrovat podle období">
-        <option value="">Všechna období</option>
-      </select>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <select id="eraFilter" style="flex: 1; min-width: 150px;">
+          <option value="">Všechna období</option>
+        </select>
 
-      <select id="sortFilter" title="Řazení plakátů">
-        <option value="newest">Nejnovější přidané</option>
-        <option value="oldest">Rok (Od nejstarších)</option>
-        <option value="year_desc">Rok (Od nejnovějších)</option>
-      </select>
+        <select id="sortFilter" style="flex: 1; min-width: 150px;">
+          <option value="newest">Nejnovější přidané</option>
+          <option value="oldest">Rok (Od nejstarších)</option>
+          <option value="year_desc">Rok (Od nejnovějších)</option>
+        </select>
 
-      <select id="pageSizeFilter">
-        <option value="25">25 / str</option>
-        <option value="50" selected>50 / str</option>
-        <option value="100">100 / str</option>
-        <option value="ALL">VŠECHNY</option>
-      </select>
-
-      <div class="layout-toggles">
-        <button class="toggle-btn active" id="btnGrid">⊞</button>
-        <button class="toggle-btn" id="btnList">≡</button>
+        <select id="pageSizeFilter" style="width: auto;">
+          <option value="25">25 / str</option>
+          <option value="50" selected>50 / str</option>
+          <option value="100">100 / str</option>
+          <option value="ALL">VŠECHNY</option>
+        </select>
       </div>
     </div>
+
+    <!-- Mřížka s plakáty -->
+    <div id="postersContainer" class="posters-grid"></div>
+
+    <!-- Stránkování -->
+    <div id="paginationContainer" style="display: flex; gap: 8px; justify-content: center; margin-top: 30px; flex-wrap: wrap;"></div>
   </div>
 
-  <div id="postersContainer" class="tickets-container grid-view"></div>
-  <div id="paginationContainer" class="pagination-container"></div>
-
   <script src="app.js"></script>
-
-  <footer class="jj-museum-footer">
-    <div class="footer-container">
-      <p class="disclaimer-title">📜 Affiche - Art Poster Archive</p>
-      <p class="disclaimer-text">
-        Nekomerční sbírkový archiv zaměřený na historickou knižní a plakátovou grafiku.
-      </p>
-    </div>
-  </footer>
-
 </body>
 </html>
