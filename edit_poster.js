@@ -1,241 +1,328 @@
-let featureExtractor = null;
-let tokenizer = null;
-let textModel = null;
-let visionModel = null;
+let fullDbData = [];
+let currentRecordIndex = -1;
+let viewerInstance = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await checkSession();
-  preloadClipModel();
-  loadPosterForEdit();
-});
+const fields = [
+  'id', 'title', 'author', 'client', 'year', 'year_approx', 
+  'period_era', 'product_subject', 'printer', 'dimensions', 
+  'soubor_hlavni', 'soubory_detaily', 'note'
+];
 
-// 1. Kontrola relace a autorizace
-async function checkSession() {
-  if (typeof supabaseClient === 'undefined') return;
+function getField(name) {
+  return document.getElementById('edit_' + name);
+}
+
+async function checkAuthSession() {
+  const modal = document.getElementById('gateModal');
+  if (typeof supabaseClient === 'undefined' || !supabaseClient.auth) {
+    if (modal) modal.style.display = 'flex';
+    return false;
+  }
 
   const { data: { session } } = await supabaseClient.auth.getSession();
-  
   if (session) {
-    document.getElementById('loginGate').style.display = 'none';
-    document.getElementById('editorForm').style.display = 'block';
+    if (modal) modal.style.display = 'none';
+    localStorage.setItem('affiche_admin_mode', 'true');
+    return true;
   } else {
-    document.getElementById('loginGate').style.display = 'block';
-    document.getElementById('editorForm').style.display = 'none';
+    if (modal) modal.style.display = 'flex';
+    localStorage.removeItem('affiche_admin_mode');
+    return false;
   }
 }
 
-async function handleLogin() {
-  const email = document.getElementById('adminEmail').value;
-  const password = document.getElementById('adminPassword').value;
-  const errDiv = document.getElementById('loginError');
-  errDiv.textContent = '';
+async function handleSupabaseLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  const errEl = document.getElementById('loginError');
+
+  if (errEl) errEl.style.display = 'none';
 
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
-    password
+    password,
   });
 
   if (error) {
-    errDiv.textContent = 'Chyba přihlášení: ' + error.message;
+    if (errEl) {
+      errEl.textContent = '❌ Chyba přihlášení: ' + error.message;
+      errEl.style.display = 'block';
+    }
   } else {
-    checkSession();
+    localStorage.setItem('affiche_admin_mode', 'true');
+    await checkAuthSession();
+    await loadDataFromSupabase();
   }
 }
 
-async function handleLogout() {
-  await supabaseClient.auth.signOut();
-  checkSession();
+async function lockAdminSession() {
+  if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
+    await supabaseClient.auth.signOut();
+  }
+  localStorage.removeItem('affiche_admin_mode');
+  window.location.href = 'index.html';
 }
 
-// 2. Načtení dat stávajícího plakátu při úpravě podle URL (?id=...)
-async function loadPosterForEdit() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const posterId = urlParams.get('id');
+window.addEventListener('DOMContentLoaded', async () => {
+  const isAuthenticated = await checkAuthSession();
+  if (isAuthenticated) {
+    await loadDataFromSupabase();
+  }
+});
 
-  if (!posterId) return;
-
-  document.getElementById('formTitle').textContent = '✏️ Upravit plakát #' + posterId;
-  document.getElementById('posterId').value = posterId;
-
+async function loadDataFromSupabase() {
+  showStatus('🔄 Načítám data ze Supabase...', 'yellow');
   try {
     const { data, error } = await supabaseClient
       .from('posters')
       .select('*')
-      .eq('id', posterId)
-      .single();
+      .order('id', { ascending: true });
 
     if (error) throw error;
-    if (!data) return;
 
-    document.getElementById('title').value = data.title || '';
-    document.getElementById('author').value = data.author || '';
-    document.getElementById('client').value = data.client || '';
-    document.getElementById('year').value = data.year || '';
-    document.getElementById('year_approx').value = data.year_approx || '';
-    document.getElementById('period_era').value = data.period_era || 'Art Deco';
-    document.getElementById('product_subject').value = data.product_subject || '';
-    document.getElementById('printer').value = data.printer || '';
-    document.getElementById('dimensions').value = data.dimensions || '';
-    document.getElementById('soubor_hlavni').value = data.soubor_hlavni || '';
-    document.getElementById('soubory_detaily').value = data.soubory_detaily || '';
-    document.getElementById('note').value = data.note || '';
+    fullDbData = data || [];
+    showStatus(`✅ Načteno ${fullDbData.length} plakátů.`, 'green');
 
-  } catch (err) {
-    console.error("Chyba při načítání plakátu k úpravě:", err.message);
-  }
-}
+    populateRecordSelect();
 
-async function preloadClipModel() {
-  try {
-    const tf = window.transformers;
-    if (tf) {
-      tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
-      tf.env.remotePath = '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetId = urlParams.get('id');
+    let initialIndex = 0;
 
-      tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
-      textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
-      featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
-      visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
-      console.log("AI CLIP Model úspěšně připraven.");
+    if (targetId) {
+      const foundIdx = fullDbData.findIndex(r => String(r.id) === String(targetId));
+      if (foundIdx !== -1) initialIndex = foundIdx;
     }
+
+    loadRecordByIndex(initialIndex);
   } catch (err) {
-    console.warn("AI Model se načte při prvním generování.", err);
+    console.error("Chyba Supabase:", err);
+    showStatus('❌ Chyba při načítání: ' + err.message, 'red');
   }
 }
 
-async function generateImageEmbeddingFromFile(file) {
-  try {
-    const tf = window.transformers;
-    if (!tf || !file) return null;
+function populateRecordSelect() {
+  const select = document.getElementById('recordSelect');
+  if (!select) return;
+  select.innerHTML = '';
 
-    tf.env.allowLocalModels = false;
-    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
-    tf.env.remotePath = '';
-
-    if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
-    if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
-
-    const image = await tf.RawImage.fromURL(URL.createObjectURL(file));
-    const imageInputs = await featureExtractor(image);
-    const { image_embeds } = await visionModel(imageInputs);
-
-    return Array.from(image_embeds.data);
-  } catch (err) {
-    console.error("Chyba při zpracování obrázku pro AI:", err);
-    return null;
-  }
+  fullDbData.forEach((row, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = `#${row.id} - ${row.title || 'Bez názvu'}`;
+    select.appendChild(opt);
+  });
 }
 
-async function generateTextEmbeddingForPoster(text) {
-  try {
-    const tf = window.transformers;
-    if (!tf || !text.trim()) return null;
+function loadRecordByIndex(index) {
+  if (!fullDbData || fullDbData.length === 0) return;
+  if (index < 0) index = 0;
+  if (index >= fullDbData.length) index = fullDbData.length - 1;
 
-    tf.env.allowLocalModels = false;
-    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models@main/';
-    tf.env.remotePath = '';
+  currentRecordIndex = index;
+  const r = fullDbData[index] || {};
 
-    if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
-    if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
+  document.getElementById('recordCounter').textContent = `Plakát ${index + 1} z ${fullDbData.length}`;
+  document.getElementById('recordIdTitle').textContent = r.id ? `#${r.id}` : 'Nový';
 
-    const textInputs = tokenizer([text], { padding: true, truncation: true });
-    const { text_embeds } = await textModel(textInputs);
+  const select = document.getElementById('recordSelect');
+  if (select) select.value = index;
 
-    return Array.from(text_embeds.data);
-  } catch (err) {
-    console.error("Chyba při generování textového vektoru:", err);
-    return null;
-  }
-}
+  document.getElementById('prevBtn').disabled = (index <= 0);
+  document.getElementById('nextBtn').disabled = (index >= fullDbData.length - 1);
 
-// 4. Hlavní uložení záznamu do databáze
-async function savePoster(e) {
-  e.preventDefault();
-
-  const submitBtn = document.querySelector('.btn-submit');
-  const originalBtnText = submitBtn.textContent;
-  submitBtn.disabled = true;
-  submitBtn.textContent = '🔄 Generuji AI vektor (může trvat pár sekund)...';
-
-  const fileInput = document.getElementById('file_input');
-  const selectedFile = fileInput && fileInput.files ? fileInput.files[0] : null;
-
-  let embeddingVector = null;
-  let aiErrorMsg = '';
-
-  const tf = window.transformers;
-  if (tf) {
-    try {
-      if (selectedFile) {
-        console.log("Generuji AI vektor ze zvoleného souboru...");
-        embeddingVector = await generateImageEmbeddingFromFile(selectedFile);
-      }
-
-      if (!embeddingVector) {
-        const textContext = [
-          document.getElementById('title').value,
-          document.getElementById('author').value,
-          document.getElementById('client').value,
-          document.getElementById('product_subject').value,
-          document.getElementById('note').value
-        ].filter(Boolean).join(' ');
-
-        if (textContext.trim()) {
-          console.log("Generuji AI vektor z textových údajů...");
-          embeddingVector = await generateTextEmbeddingForPoster(textContext);
-        }
-      }
-    } catch (err) {
-      console.error("Chyba při spuštění AI modelů:", err);
-      aiErrorMsg = err.message;
+  fields.forEach(f => {
+    const el = getField(f);
+    if (el) {
+      el.value = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
     }
-  } else {
-    aiErrorMsg = "Knihovna Transformers.js nebyla načtena na stránce.";
+  });
+
+  updateImageFromInput();
+}
+
+function navigateRecord(delta) {
+  saveCurrentFormToMemory();
+  if (currentRecordIndex + delta >= 0 && currentRecordIndex + delta < fullDbData.length) {
+    loadRecordByIndex(currentRecordIndex + delta);
   }
+}
+
+function jumpToSelectedRecord() {
+  saveCurrentFormToMemory();
+  const select = document.getElementById('recordSelect');
+  if (select && select.value !== '') {
+    loadRecordByIndex(parseInt(select.value, 10));
+  }
+}
+
+function saveCurrentFormToMemory() {
+  if (currentRecordIndex < 0 || !fullDbData[currentRecordIndex]) return;
+  fields.forEach(f => {
+    const el = getField(f);
+    if (el) {
+      fullDbData[currentRecordIndex][f] = el.value.trim();
+    }
+  });
+}
+
+function updateImageFromInput() {
+  const mainFile = getField('soubor_hlavni')?.value.trim();
+  const previewImg = document.getElementById('previewImg');
+  const thumbList = document.getElementById('thumbList');
+  if (!previewImg || !thumbList) return;
+
+  thumbList.innerHTML = '';
+
+  if (!mainFile) {
+    previewImg.src = '';
+    return;
+  }
+
+  previewImg.src = `./scans/${mainFile}`;
+  previewImg.onerror = function() { this.src = ''; };
+
+  if (viewerInstance) viewerInstance.destroy();
+  viewerInstance = new Viewer(previewImg);
+
+  const detailFiles = (getField('soubory_detaily')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const allFiles = [mainFile, ...detailFiles];
+
+  allFiles.forEach((f, idx) => {
+    const thumb = document.createElement('img');
+    thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
+    thumb.src = `./scans/${f}`;
+    thumb.onerror = function() { this.src = ''; };
+    thumb.onclick = () => {
+      previewImg.src = `./scans/${f}`;
+      document.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('active'));
+      thumb.classList.add('active');
+    };
+    thumbList.appendChild(thumb);
+  });
+}
+
+async function saveCurrentRecordToSupabase() {
+  saveCurrentFormToMemory();
+  const record = fullDbData[currentRecordIndex];
+  if (!record) return;
+
+  showStatus('🚀 Ukládám do databáze...', 'yellow');
 
   const payload = {
-    title: document.getElementById('title').value,
-    author: document.getElementById('author').value,
-    client: document.getElementById('client').value,
-    year: document.getElementById('year').value ? parseInt(document.getElementById('year').value, 10) : null,
-    year_approx: document.getElementById('year_approx').value,
-    period_era: document.getElementById('period_era').value,
-    product_subject: document.getElementById('product_subject').value,
-    printer: document.getElementById('printer').value,
-    dimensions: document.getElementById('dimensions').value,
-    soubor_hlavni: document.getElementById('soubor_hlavni').value.trim(),
-    soubory_detaily: document.getElementById('soubory_detaily').value.trim(),
-    note: document.getElementById('note').value,
+    ...record,
+    year: record.year ? parseInt(record.year, 10) : null,
     is_public: true
   };
 
-  if (embeddingVector && embeddingVector.length === 512) {
-    payload.embedding = embeddingVector;
-  }
-
-  const id = document.getElementById('posterId').value;
-
   try {
-    let result;
-    if (id) {
-      result = await supabaseClient.from('posters').update(payload).eq('id', id);
-    } else {
-      result = await supabaseClient.from('posters').insert([payload]);
+    const { data, error } = await supabaseClient
+      .from('posters')
+      .upsert(payload)
+      .select();
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      fullDbData[currentRecordIndex] = data[0];
     }
 
-    if (result.error) throw result.error;
-
-    const statusText = payload.embedding 
-      ? 'VYGENEROVÁN ✅' 
-      : 'NEVYGENEROVÁN ❌' + (aiErrorMsg ? ` (${aiErrorMsg})` : ' (zkontrolujte konzoli F12)');
-
-    alert('Plakát úspěšně uložen!\nAI Vektor: ' + statusText);
-    window.location.href = 'index.html';
+    populateRecordSelect();
+    showStatus('✅ Záznam úspěšně uložen do Supabase!', 'green');
   } catch (err) {
-    alert('Chyba při ukládání do Supabase: ' + err.message);
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = originalBtnText;
+    console.error("Chyba při ukládání:", err);
+    showStatus('❌ Chyba při ukládání: ' + err.message, 'red');
+  }
+}
+
+async function addNewRecord() {
+  saveCurrentFormToMemory();
+  const newRecord = { title: 'Nový plakát', period_era: 'Art Deco', is_public: true };
+
+  showStatus('➕ Vytvářím nový záznam...', 'yellow');
+  try {
+    const { data, error } = await supabaseClient
+      .from('posters')
+      .insert([newRecord])
+      .select();
+
+    if (error) throw error;
+
+    fullDbData.push(data[0]);
+    populateRecordSelect();
+    loadRecordByIndex(fullDbData.length - 1);
+    showStatus(`✅ Vytvořen nový plakát #${data[0].id}`, 'green');
+  } catch (err) {
+    showStatus('❌ Chyba při vytváření: ' + err.message, 'red');
+  }
+}
+
+async function duplicateCurrentRecord() {
+  if (currentRecordIndex < 0 || !fullDbData[currentRecordIndex]) return;
+  saveCurrentFormToMemory();
+
+  const current = fullDbData[currentRecordIndex];
+  const { id, ...clone } = current;
+  clone.title = (clone.title || '') + ' (Kopie)';
+
+  showStatus('📋 Duplikuji plakát...', 'yellow');
+  try {
+    const { data, error } = await supabaseClient
+      .from('posters')
+      .insert([clone])
+      .select();
+
+    if (error) throw error;
+
+    fullDbData.push(data[0]);
+    populateRecordSelect();
+    loadRecordByIndex(fullDbData.length - 1);
+    showStatus(`✅ Duplikováno jako nový plakát #${data[0].id}`, 'green');
+  } catch (err) {
+    showStatus('❌ Chyba při duplikaci: ' + err.message, 'red');
+  }
+}
+
+async function deleteCurrentRecord() {
+  if (currentRecordIndex < 0 || !fullDbData[currentRecordIndex]) return;
+  const record = fullDbData[currentRecordIndex];
+
+  if (!confirm(`Opravdu chcete SMAZAT plakát #${record.id} (${record.title})?`)) return;
+
+  showStatus(`🗑️ Mažu plakát #${record.id}...`, 'yellow');
+  try {
+    const { error } = await supabaseClient
+      .from('posters')
+      .delete()
+      .eq('id', record.id);
+
+    if (error) throw error;
+
+    fullDbData.splice(currentRecordIndex, 1);
+    populateRecordSelect();
+    loadRecordByIndex(Math.max(0, currentRecordIndex - 1));
+    showStatus(`🗑️ Plakát #${record.id} byl smazán.`, 'green');
+  } catch (err) {
+    showStatus('❌ Chyba při mazání: ' + err.message, 'red');
+  }
+}
+
+function showStatus(msg, color) {
+  const el = document.getElementById('statusMessage');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (color === 'green') {
+    el.style.backgroundColor = 'rgba(22, 163, 74, 0.2)';
+    el.style.border = '1px solid #16a34a';
+    el.style.color = '#4ade80';
+  } else if (color === 'red') {
+    el.style.backgroundColor = 'rgba(220, 38, 38, 0.2)';
+    el.style.border = '1px solid #dc2626';
+    el.style.color = '#f87171';
+  } else {
+    el.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
+    el.style.border = '1px solid #f59e0b';
+    el.style.color = '#fbbf24';
   }
 }
