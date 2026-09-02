@@ -353,3 +353,167 @@ function showStatus(msg, color) {
     el.style.color = '#d4af37';
   }
 }
+
+/* INBOX NEPŘIŘAZENÝCH SKENŮ Z GITHUB API + KŘÍŽOVÁ KONTROLA SE SUPABASE */
+async function scanUnassignedImages() {
+  const container = document.getElementById('unassignedScansList');
+  const scanBtn = document.getElementById('btnScanFolder');
+  if (!container) return;
+
+  if (scanBtn) scanBtn.disabled = true;
+  container.innerHTML = '<div style="font-size: 0.8rem; color: var(--accent-gold); text-align: center; padding: 10px;">🔍 Prohledávám adresář /scans/ přes GitHub API...</div>';
+
+  try {
+    // NASTAVTE SPRÁVNOU CESTU K VAŠEMU GITHUB REPOZITÁŘI (uživatel/repo):
+    const githubRepoUrl = 'https://api.github.com/repos/19forever/affiche/contents/scans';
+
+    const res = await fetch(githubRepoUrl, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' }
+    });
+
+    if (!res.ok) {
+      throw new Error(`GitHub API vrátilo status ${res.status}: ${res.statusText}`);
+    }
+
+    const files = await res.json();
+    if (!Array.isArray(files)) {
+      throw new Error('Neočekávaná odpověď z GitHub API.');
+    }
+
+    // Projdeme všechny plakáty v databázi a posbíráme použité skeny
+    const assignedSet = new Set();
+    if (Array.isArray(fullDbData)) {
+      fullDbData.forEach(row => {
+        if (!row) return;
+
+        // Kontrola hlavního skenu
+        if (row.soubor_hlavni && typeof row.soubor_hlavni === 'string') {
+          assignedSet.add(row.soubor_hlavni.trim().toLowerCase());
+        }
+
+        // Kontrola detailních skenů
+        if (row.soubory_detaily && typeof row.soubory_detaily === 'string') {
+          row.soubory_detaily.split(',').forEach(part => {
+            const trimmed = part.trim();
+            if (trimmed) assignedSet.add(trimmed.toLowerCase());
+          });
+        }
+      });
+    }
+
+    const imageExtRegex = /\.(jpe?g|png|webp|gif|bmp)$/i;
+    const unassigned = files.filter(f => {
+      if (f.type !== 'file') return false;
+      if (!imageExtRegex.test(f.name)) return false;
+      return !assignedSet.has(f.name.toLowerCase());
+    });
+
+    container.innerHTML = '';
+    const countBadge = document.getElementById('unassignedCountBadge');
+    if (countBadge) {
+      countBadge.textContent = unassigned.length;
+      countBadge.style.display = 'inline-block';
+    }
+
+    if (unassigned.length === 0) {
+      container.innerHTML = '<div style="font-size: 0.8rem; color: #4ade80; text-align: center; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">🎉 Všechny obrázky ve složce /scans/ jsou přiřazeny k plakátům!</div>';
+      showStatus('✅ Žádné nepřiřazené skeny nenalezeny.', 'green');
+      return;
+    }
+
+    showStatus(`📂 Nalezeno ${unassigned.length} nepřiřazených skenů.`, 'gold');
+
+    unassigned.forEach(item => {
+      const card = document.createElement('div');
+      card.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px;';
+
+      const leftDiv = document.createElement('div');
+      leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;';
+
+      const imgSrc = item.download_url || `./scans/${encodeURIComponent(item.name)}`;
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.alt = item.name;
+      img.style.cssText = 'width: 42px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); background: #000; flex-shrink: 0; cursor: pointer;';
+      img.onerror = function() {
+        this.src = `./scans/${encodeURIComponent(item.name)}`;
+      };
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = item.name;
+      nameSpan.title = item.name;
+      nameSpan.style.cssText = 'font-size: 0.75rem; color: var(--text-main); word-break: break-all; line-height: 1.2; font-family: monospace; flex: 1;';
+
+      leftDiv.appendChild(img);
+      leftDiv.appendChild(nameSpan);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-action btn-green';
+      btn.title = 'Vytvořit nový plakát z tohoto skenu';
+      btn.style.cssText = 'width: 32px; height: 32px; padding: 0; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px;';
+      btn.textContent = '➕';
+      btn.onclick = function() {
+        createRecordFromScan(item.name);
+      };
+
+      card.appendChild(leftDiv);
+      card.appendChild(btn);
+      container.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error("Chyba při skenování složky:", err);
+    container.innerHTML = `<div style="font-size: 0.75rem; color: #f87171; padding: 8px; background: rgba(220,38,38,0.1); border-radius: 4px;">❌ ${err.message}</div>`;
+    showStatus('❌ Chyba při skenování složky /scans/: ' + err.message, 'red');
+  } finally {
+    if (scanBtn) scanBtn.disabled = false;
+  }
+}
+
+async function createRecordFromScan(filename) {
+  if (!filename) return;
+  saveCurrentFormToMemory();
+
+  // Vytvoříme objekt BEZ sloupce id, aby databáze přiřadila autoincrement ID
+  const newRecord = {
+    title: filename.replace(/\.[^/.]+$/, "").replace(/_/g, " "), // Název podle souboru
+    author: '',
+    client: '',
+    product_subject: '',
+    period_era: 'Art Deco',
+    year: null,
+    year_approx: '',
+    printer: '',
+    dimensions: '',
+    soubor_hlavni: filename,
+    soubory_detaily: '',
+    note: '',
+    is_public: true
+  };
+
+  showStatus(`➕ Vytvářím nový plakát v Supabase pro sken ${filename}...`, 'gold');
+  try {
+    const { data, error } = await supabaseClient
+      .from('posters')
+      .insert([newRecord])
+      .select();
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error("Databáze nevrátila vytvořený záznam.");
+    }
+
+    fullDbData.push(data[0]);
+    populateRecordSelect();
+    loadRecordByIndex(fullDbData.length - 1);
+    
+    // Obnovíme seznam nepřiřazených skenů
+    scanUnassignedImages();
+    
+    showStatus(`✅ Vytvořen nový plakát #${data[0].id} pro sken ${filename}`, 'green');
+  } catch (err) {
+    showStatus('❌ Chyba při vytváření záznamu: ' + err.message, 'red');
+  }
+}
