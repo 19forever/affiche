@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadPosterForEdit();
 });
 
-// 1. Kontrola relace a správa autorizace
+// 1. Kontrola relace a autorizace
 async function checkSession() {
   if (typeof supabaseClient === 'undefined') return;
 
@@ -91,8 +91,6 @@ async function preloadClipModel() {
     const tf = window.transformers;
     if (tf) {
       tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-      tf.env.remotePath = '{model}/';
       
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -112,8 +110,6 @@ async function generateImageEmbeddingFromFile(file) {
     if (!tf || !file) return null;
 
     tf.env.allowLocalModels = false;
-    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-    tf.env.remotePath = '{model}/';
 
     if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -136,8 +132,6 @@ async function generateTextEmbeddingForPoster(text) {
     if (!tf || !text.trim()) return null;
 
     tf.env.allowLocalModels = false;
-    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-    tf.env.remotePath = '{model}/';
       
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
