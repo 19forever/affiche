@@ -85,14 +85,14 @@ async function loadPosterForEdit() {
   }
 }
 
+// 3. Příprava AI CLIP Modelu (Transformers.js)
 async function preloadClipModel() {
   try {
     const tf = window.transformers;
     if (tf) {
-      // Vynutit stahování z veřejného CDN a vypnout lokální adresář
-     tf.env.allowLocalModels = false;
-tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-tf.env.remotePath = '{model}/';
+      tf.env.allowLocalModels = false;
+      tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
+      tf.env.remotePath = '{model}/';
       
       tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
       textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -109,11 +109,11 @@ tf.env.remotePath = '{model}/';
 async function generateImageEmbeddingFromFile(file) {
   try {
     const tf = window.transformers;
-    if (tf) {
-      // Vynutit stahování z veřejného CDN a vypnout lokální adresář
-      tf.env.allowLocalModels = false;
-tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
-tf.env.remotePath = '{model}/';
+    if (!tf || !file) return null;
+
+    tf.env.allowLocalModels = false;
+    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
+    tf.env.remotePath = '{model}/';
 
     if (!featureExtractor) featureExtractor = await tf.AutoProcessor.from_pretrained('Xenova/clip-ViT-B-32');
     if (!visionModel) visionModel = await tf.CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
@@ -133,11 +133,11 @@ tf.env.remotePath = '{model}/';
 async function generateTextEmbeddingForPoster(text) {
   try {
     const tf = window.transformers;
-    if (tf) {
-      // Vynutit stahování z veřejného CDN a vypnout lokální adresář
-      tf.env.allowLocalModels = false;
-      tf.env.remoteHost = 'https://huggingface.co/';
-      tf.env.remotePath = '{model}/resolve/main/';
+    if (!tf || !text.trim()) return null;
+
+    tf.env.allowLocalModels = false;
+    tf.env.remoteHost = 'https://cdn.jsdelivr.net/gh/xenova/transformers.js-models/';
+    tf.env.remotePath = '{model}/';
       
     if (!tokenizer) tokenizer = await tf.AutoTokenizer.from_pretrained('Xenova/clip-ViT-B-32');
     if (!textModel) textModel = await tf.CLIPTextModelWithProjection.from_pretrained('Xenova/clip-ViT-B-32');
