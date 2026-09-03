@@ -539,6 +539,7 @@ function populateEraDatalist() {
   Array.from(erasSet).sort().forEach(era => {
     const opt = document.createElement('option');
     opt.value = era;
+    opt.textContent = era; // Zajišťuje správné vykreslení nabídky
     datalist.appendChild(opt);
   });
 }
