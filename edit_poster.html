@@ -258,16 +258,11 @@
           </div>
 
           <div class="form-grid-3">
-            <div class="form-group">
-              <label for="edit_period_era">Období / Styl</label>
-              <select id="edit_period_era" name="period_era">
-                <option value="Secese">Secese</option>
-                <option value="Art Deco">Art Deco</option>
-                <option value="První republika">První republika</option>
-                <option value="Bauhaus">Bauhaus</option>
-                <option value="Předválečné">Předválečné</option>
-              </select>
-            </div>
+           <div class="form-group">
+             <label for="edit_period_era">Období / Styl</label>
+             <input type="text" id="edit_period_era" name="period_era" list="erasList" placeholder="např. Cubism, Bauhaus, Modernism...">
+             <datalist id="erasList"></datalist>
+           </div>
             <div class="form-group">
               <label for="edit_year">Rok (číslo)</label>
               <input type="number" id="edit_year" name="year" placeholder="1925">
