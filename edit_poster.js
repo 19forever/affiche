@@ -521,14 +521,18 @@ async function createRecordFromScan(filename) {
   }
 }
 
-// Naplnění našeptávače unikátními styly z databáze
+// Naplnění našeptávače unikátními styly z databáze + výchozí sadou
 function populateEraDatalist() {
   const datalist = document.getElementById('erasList');
   if (!datalist) return;
 
   datalist.innerHTML = '';
-  const erasSet = new Set();
+  
+  // Výchozí styly "natvrdo" jako základ
+  const defaultEras = ['Secese', 'Art Deco', 'První republika', 'Bauhaus', 'Meziválečné', 'Kubismus', 'Funkcionalismus', 'Konstruktivismus'];
+  const erasSet = new Set(defaultEras);
 
+  // Přidání všech dalších stylů, které se reálně vyskytují v databázi
   if (Array.isArray(fullDbData)) {
     fullDbData.forEach(r => {
       const era = (r.period_era || '').trim();
@@ -536,10 +540,10 @@ function populateEraDatalist() {
     });
   }
 
+  // Vytvoření option prvků
   Array.from(erasSet).sort().forEach(era => {
     const opt = document.createElement('option');
     opt.value = era;
-    opt.textContent = era; // Zajišťuje správné vykreslení nabídky
     datalist.appendChild(opt);
   });
 }
