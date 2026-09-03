@@ -84,6 +84,7 @@ async function loadDataFromSupabase() {
     showStatus(`✅ Načteno ${fullDbData.length} plakátů.`, 'green');
 
     populateRecordSelect();
+    populateEraDatalist(); // <-- SEM PŘIDAT VOLÁNÍ NAŠEPTÁVAČE
 
     const urlParams = new URLSearchParams(window.location.search);
     const targetId = urlParams.get('id');
@@ -228,6 +229,8 @@ async function saveCurrentRecordToSupabase() {
     }
 
     populateRecordSelect();
+    populateEraDatalist(); // <-- SEM VLOŽIT VOLÁNÍ
+    
     showStatus('✅ Záznam úspěšně uložen do Supabase!', 'green');
   } catch (err) {
     console.error("Chyba při ukládání:", err);
