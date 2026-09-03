@@ -517,3 +517,25 @@ async function createRecordFromScan(filename) {
     showStatus('❌ Chyba při vytváření záznamu: ' + err.message, 'red');
   }
 }
+
+// Naplnění našeptávače unikátními styly z databáze
+function populateEraDatalist() {
+  const datalist = document.getElementById('erasList');
+  if (!datalist) return;
+
+  datalist.innerHTML = '';
+  const erasSet = new Set();
+
+  if (Array.isArray(fullDbData)) {
+    fullDbData.forEach(r => {
+      const era = (r.period_era || '').trim();
+      if (era) erasSet.add(era);
+    });
+  }
+
+  Array.from(erasSet).sort().forEach(era => {
+    const opt = document.createElement('option');
+    opt.value = era;
+    datalist.appendChild(opt);
+  });
+}
